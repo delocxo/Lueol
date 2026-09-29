@@ -14,3 +14,4 @@ record BinaryExpr(Expr Left, Expr Right, TokenType Op, Position Position) : Expr
 record LetExpr(string Name, Expr Expr, Position Position) : Expr(Position);
 record ConstExpr(string Name, Expr Expr, Position Position) : Expr(Position);
 record AssignExpr(string Name, Expr Expr, Position Position) : Expr(Position);
+record IfExpr(Expr Expr, List<Expr> IfBody, List<Expr>? ElseBody, Position Position) : Expr(Position);

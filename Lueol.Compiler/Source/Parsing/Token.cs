@@ -2,7 +2,7 @@ internal enum TokenType
 {
     String, Number, Identifier,
 
-    True, False, Nil, Let, Const,
+    True, False, Nil, Let, Const, If, Else,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,

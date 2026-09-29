@@ -11,6 +11,7 @@ class Emitter
     long _nextTempIndex = 0;
     int _indentLevel = 1;
     int _indentSize = 4;
+    int _instructionIndex = 0;
 
     public Emitter(Lowerer lowerer)
     {
@@ -20,8 +21,21 @@ class Emitter
 
     public void EmitInstructions()
     {
-        foreach (var instruction in _instructions)
+        while (_instructionIndex < _instructions.Count)
+        {
+            EmitInstruction(_instructions[_instructionIndex++]);
+        }
+    }
+
+    public void EmitInstructionsUntil<T>() where T : CsInstruction
+    {
+        while (_instructionIndex < _instructions.Count)
+        {
+            CsInstruction instruction = _instructions[_instructionIndex++];
+            if (instruction is T)
+                break;
             EmitInstruction(instruction);
+        }
     }
 
     public void EmitInstruction(CsInstruction instruction)
@@ -48,6 +62,36 @@ class Emitter
                     EmitPosition(csPosition.Position);
                     break;
                 }
+
+            case CsIfStart csIfStart:
+                {
+                    string condition = EmitValue(csIfStart.Condition);
+
+                    EmitLine($"if ({condition}.IsTruthy())");
+                    EmitLine("{");
+
+                    IncreaseIndent();
+
+                    EmitInstructionsUntil<CsIfEnd>();
+
+                    DecreaseIndent();
+                    EmitLine("}");
+                    break;
+                }
+
+            case CsElseStart:
+                {
+                    EmitLine($"else");
+                    EmitLine("{");
+
+                    IncreaseIndent();
+
+                    EmitInstructionsUntil<CsElseEnd>();
+
+                    DecreaseIndent();
+                    EmitLine("}");
+                    break;
+                }
         }
     }
 
@@ -59,9 +103,9 @@ class Emitter
                 {
                     return csLiteral.Value switch
                     {
-                        long l => NewValue(l.ToString(CultureInfo.InvariantCulture)),
-                        double d => NewValue(d.ToString(CultureInfo.InvariantCulture)),
-                        string s => NewValue($"{ToCSharpString(s.ToString(CultureInfo.InvariantCulture))}"),
+                        long l => NewValue($"{l.ToString(CultureInfo.InvariantCulture)}L"),
+                        double d => NewValue($"{d.ToString(CultureInfo.InvariantCulture)}D"),
+                        string s => NewValue($"\"{ToCSharpString(s.ToString(CultureInfo.InvariantCulture))}\""),
                         bool b => NewValue(b ? "true" : "false"),
                         _ => throw new UnreachableException()
                     };
@@ -85,7 +129,7 @@ class Emitter
                     else
                         function = $"{right}.Negate()";
 
-                    string tempName = $"temp_{_nextTempIndex++}";
+                    string tempName = GetTemp();
 
                     EmitLine($"Value {tempName} = {function};");
 
@@ -115,7 +159,7 @@ class Emitter
                         _ => throw new UnreachableException()
                     };
 
-                    string tempName = $"temp_{_nextTempIndex++}";
+                    string tempName = GetTemp();
 
                     EmitLine($"Value {tempName} = {left}.{function}({right});");
 
@@ -160,4 +204,9 @@ class Emitter
     {
         EmitLine($"RuntimeState.Position = new Position({position.Line}, {position.Column}, \"{ToCSharpString(position.Source)}\");");
     }
+
+    void IncreaseIndent() => _indentLevel++;
+    void DecreaseIndent() => _indentLevel--;
+
+    string GetTemp() => $"emitter_temp_{_nextTempIndex++}";
 }

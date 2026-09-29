@@ -48,8 +48,19 @@ class Parser
     {
         List<Expr> exprs = new List<Expr>();
 
-        while (NotAtEnd() && !Check(TokenType.LeftBrace))
+        if (!Check(TokenType.LeftBrace))
+        {
             exprs.Add(ParseExpr());
+            return exprs;
+        }
+
+        Expect(TokenType.LeftBrace);
+
+        while (NotAtEnd() && !Check(TokenType.RightBrace))
+        {
+            exprs.Add(ParseExpr());
+            Expect(TokenType.Semicolon);
+        }
 
         Expect(TokenType.RightBrace);
 
@@ -220,6 +231,19 @@ class Parser
             Expr expr = ParseExpr();
 
             return new ConstExpr(name, expr, token.Position);
+        }
+        else if (Match(TokenType.If))
+        {
+            Expr condition = ParseExpr();
+
+            List<Expr> body = ParseBody();
+
+            List<Expr>? elseBody = null;
+
+            if (Match(TokenType.Else))
+                elseBody = ParseBody();
+
+            return new IfExpr(condition, body, elseBody, token.Position);
         }
 
         throw ThrowUnexpected();

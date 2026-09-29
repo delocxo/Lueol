@@ -34,3 +34,7 @@ abstract record CsInstruction
 record CsDeclare(CsLocal CsLocal, bool IsConst, CsValue Value) : CsInstruction;
 record CsAssign(CsLocal CsLocal, CsValue Value) : CsInstruction;
 record CsPosition(Position Position) : CsInstruction;
+record CsIfStart(CsValue Condition) : CsInstruction;
+record CsElseStart : CsInstruction;
+record CsElseEnd : CsInstruction;
+record CsIfEnd : CsInstruction;

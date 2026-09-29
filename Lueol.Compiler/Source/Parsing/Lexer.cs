@@ -14,7 +14,9 @@ class Lexer
             { "false", TokenType.False },
             { "nil", TokenType.Nil },
             { "let", TokenType.Let },
-            { "const", TokenType.Const }
+            { "const", TokenType.Const },
+            { "if", TokenType.If },
+            { "else", TokenType.Else }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

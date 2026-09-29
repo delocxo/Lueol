@@ -46,9 +46,7 @@ class Scopes
 
     public CsLocal Set(string name, Position position)
     {
-        var scope = _scopes.Peek();
-        if (!scope.TryGetValue(name, out VariableSymbol? symbol))
-            throw new Error($"'{name}' does not exist", position);
+        var symbol = Resolve(name, position);
         if (symbol.IsConst)
             throw new Error($"'{name}' cannot be reassigned", position);
         return symbol.CsLocal;
@@ -62,10 +60,16 @@ class Lowerer
     Scopes _scopes = new Scopes();
     long _nextLocalIndex = 0;
 
-    public void LowerExprs(List<Expr> exprs)
+    public CsValue LowerExprs(List<Expr> exprs)
     {
-        foreach (Expr expr in exprs)
+        for (int i = 0; i < exprs.Count; i++)
+        {
+            Expr expr = exprs[i];
+            if (i == exprs.Count - 1)
+                return LowerExpr(expr);
             LowerExpr(expr);
+        }
+        return new CsNil();
     }
 
     public void MangleNames()
@@ -111,6 +115,10 @@ class Lowerer
 
             case BinaryExpr binaryExpr:
                 {
+                    if (binaryExpr.Op == TokenType.And)
+                        return LowerAnd(binaryExpr);
+                    else if (binaryExpr.Op == TokenType.Or)
+                        return LowerOr(binaryExpr);
                     CsValue left = LowerExpr(binaryExpr.Left);
                     CsValue right = LowerExpr(binaryExpr.Right);
                     return new CsBinary(binaryExpr.Op, left, right, binaryExpr.Position);
@@ -150,10 +158,106 @@ class Lowerer
 
                     CsInstructions.Add(new CsAssign(csLocal, value));
 
-                    return value;
+                    return csLocal;
+                }
+
+            case IfExpr ifExpr:
+                {
+                    CsLocal csLocal = new CsLocal("lowerer_temp");
+
+                    CsInstructions.Add(new CsDeclare(csLocal, false, new CsNil()));
+
+                    // IF
+
+                    CsValue condition = LowerExpr(ifExpr.Expr);
+
+                    CsInstructions.Add(new CsIfStart(condition));
+
+                    _scopes.BeginScope();
+
+                    CsValue ifLast = LowerExprs(ifExpr.IfBody);
+
+                    CsInstructions.Add(new CsAssign(csLocal, ifLast));
+
+                    _scopes.EndScope();
+
+                    CsInstructions.Add(new CsIfEnd());
+
+                    // ELSE
+
+                    if (ifExpr.ElseBody != null)
+                    {
+                        CsInstructions.Add(new CsElseStart());
+
+                        _scopes.BeginScope();
+
+                        CsValue elselast = LowerExprs(ifExpr.ElseBody);
+
+                        CsInstructions.Add(new CsAssign(csLocal, elselast));
+
+                        _scopes.EndScope();
+
+                        CsInstructions.Add(new CsElseEnd());
+                    }
+
+                    return csLocal;
                 }
         }
 
         throw new Error($"'{expr.GetType().Name}' is an invalid expression", expr.Position);
+    }
+
+    CsValue LowerAnd(BinaryExpr binaryExpr)
+    {
+        CsLocal csLocal = new CsLocal("lowerer_temp");
+
+        CsInstructions.Add(new CsDeclare(csLocal, false, new CsLiteral(false)));
+
+        CsValue left = LowerExpr(binaryExpr.Left);
+
+        CsInstructions.Add(new CsIfStart(left));
+
+        _scopes.BeginScope();
+
+        CsValue right = LowerExpr(binaryExpr.Right);
+
+        CsInstructions.Add(new CsIfStart(right));
+        CsInstructions.Add(new CsAssign(csLocal, new CsLiteral(true)));
+        CsInstructions.Add(new CsIfEnd());
+
+        _scopes.EndScope();
+
+        CsInstructions.Add(new CsIfEnd());
+
+        return csLocal;
+    }
+
+    CsValue LowerOr(BinaryExpr binaryExpr)
+    {
+        CsLocal csLocal = new CsLocal("lowerer_temp");
+
+        CsInstructions.Add(new CsDeclare(csLocal, false, new CsLiteral(false)));
+
+        CsValue left = LowerExpr(binaryExpr.Left);
+
+        CsInstructions.Add(new CsIfStart(left));
+        CsInstructions.Add(new CsAssign(csLocal, new CsLiteral(true)));
+        CsInstructions.Add(new CsIfEnd());
+
+        CsInstructions.Add(new CsElseStart());
+
+        _scopes.BeginScope();
+
+        CsValue right = LowerExpr(binaryExpr.Right);
+
+        CsInstructions.Add(new CsIfStart(right));
+        CsInstructions.Add(new CsAssign(csLocal, new CsLiteral(true)));
+        CsInstructions.Add(new CsIfEnd());
+
+        _scopes.EndScope();
+
+        CsInstructions.Add(new CsElseEnd());
+
+        return csLocal;
     }
 }

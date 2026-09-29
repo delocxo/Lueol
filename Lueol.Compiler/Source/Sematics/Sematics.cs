@@ -30,6 +30,15 @@ static class Sematics
             case AssignExpr assignExpr:
                 CheckExpr(assignExpr.Expr);
                 break;
+
+            case IfExpr ifExpr:
+                {
+                    CheckExpr(ifExpr.Expr);
+                    Check(ifExpr.IfBody);
+                    if (ifExpr.ElseBody != null)
+                        Check(ifExpr.ElseBody);
+                    break;
+                }
         }
     }
 }
