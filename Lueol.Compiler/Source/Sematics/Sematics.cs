@@ -98,6 +98,10 @@ static class Sematics
 
                     break;
                 }
+
+            case BlockExpr blockExpr:
+                Check(blockExpr.Exprs);
+                break;
         }
     }
 }

@@ -45,3 +45,5 @@ record CsWhileCondition(CsValue Condition) : CsInstruction;
 record CsWhileEnd : CsInstruction;
 record CsBreak : CsInstruction;
 record CsContinue : CsInstruction;
+record CsBlockStart : CsInstruction;
+record CsBlockEnd : CsInstruction;

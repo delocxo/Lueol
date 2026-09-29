@@ -268,6 +268,26 @@ class Lowerer
 
                     return resultLocal;
                 }
+
+            case BlockExpr blockExpr:
+                {
+                    CsLocal resultLocal = new CsLocal("result_local");
+
+                    CsInstructions.Add(new CsDeclare(resultLocal, false, new CsNil()));
+
+                    CsInstructions.Add(new CsBlockStart());
+
+                    _scopes.BeginScope();
+
+                    CsValue last = LowerExprs(blockExpr.Exprs);
+                    CsInstructions.Add(new CsAssign(resultLocal, last));
+
+                    _scopes.EndScope();
+
+                    CsInstructions.Add(new CsBlockEnd());
+
+                    return resultLocal;
+                }
         }
 
         throw new Error($"'{expr.GetType().Name}' is an invalid expression", expr.Position);

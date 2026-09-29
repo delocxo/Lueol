@@ -142,6 +142,16 @@ class Emitter
             case CsContinue:
                 EmitLine("continue;");
                 break;
+
+            case CsBlockStart:
+                EmitLine("{");
+                IncreaseIndent();
+                break;
+
+            case CsBlockEnd:
+                DecreaseIndent();
+                EmitLine("}");
+                break;
         }
     }
 

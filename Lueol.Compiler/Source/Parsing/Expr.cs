@@ -24,3 +24,4 @@ record MatchArm(Expr Pattern, Expr Result) : MatchPattern;
 record MatchDefault(Expr Result) : MatchPattern;
 
 record MatchExpr(Expr Scutinee, List<MatchPattern> Patterns, Position Position) : Expr(Position);
+record BlockExpr(List<Expr> Exprs, Position Position) : Expr(Position);

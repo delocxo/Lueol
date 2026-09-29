@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection.Metadata.Ecma335;
 
 class Parser
 {
@@ -307,6 +308,12 @@ class Parser
             Expect(TokenType.RightBrace);
 
             return new MatchExpr(scrutinee, matchPatterns, token.Position);
+        }
+
+        else if (Check(TokenType.LeftBrace))
+        {
+            List<Expr> body = ParseBody();
+            return new BlockExpr(body, token.Position);
         }
 
         throw ThrowUnexpected();
