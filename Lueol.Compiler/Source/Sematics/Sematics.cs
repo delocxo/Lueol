@@ -66,6 +66,38 @@ static class Sematics
                 if (_loopDepth <= 0)
                     throw new Error("Continue cannot be used outside a loop", continueExpr.Position);
                 break;
+
+            case MatchExpr matchExpr:
+                {
+                    CheckExpr(matchExpr.Scutinee);
+
+                    bool hasDefault = false;
+
+                    for (int i = 0; i < matchExpr.Patterns.Count; i++)
+                    {
+                        var pattern = matchExpr.Patterns[i];
+
+                        if (pattern is MatchArm matchArm)
+                        {
+                            CheckExpr(matchArm.Pattern);
+                            CheckExpr(matchArm.Result);
+                        }
+                        else if (pattern is MatchDefault matchDefault)
+                        {
+                            if (hasDefault)
+                                throw new Error("Can only have one default match", matchExpr.Position);
+
+                            if (i != matchExpr.Patterns.Count - 1)
+                                throw new Error("Default match must be last", matchExpr.Position);
+
+                            hasDefault = true;
+
+                            CheckExpr(matchDefault.Result);
+                        }
+                    }
+
+                    break;
+                }
         }
     }
 }

@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 class VariableSymbol
 {
     public VariableSymbol(CsLocal csLocal, bool isConst)
@@ -249,6 +251,23 @@ class Lowerer
             case ContinueExpr:
                 CsInstructions.Add(new CsContinue());
                 return new CsNil();
+
+            case MatchExpr matchExpr:
+                {
+                    CsLocal resultLocal = new CsLocal("lowerer_temp");
+
+                    CsInstructions.Add(new CsDeclare(resultLocal, false, new CsNil()));
+
+                    CsValue scrutinee = LowerExpr(matchExpr.Scutinee);
+
+                    CsLocal scrutineeLocal = new CsLocal("lowerer_temp");
+
+                    CsInstructions.Add(new CsDeclare(scrutineeLocal, false, scrutinee));
+
+                    LowerMatchPatterns(scrutineeLocal, resultLocal, matchExpr.Patterns, 0);
+
+                    return resultLocal;
+                }
         }
 
         throw new Error($"'{expr.GetType().Name}' is an invalid expression", expr.Position);
@@ -306,5 +325,48 @@ class Lowerer
         CsInstructions.Add(new CsElseEnd());
 
         return csLocal;
+    }
+
+    void LowerMatchPatterns(CsLocal scrutinee, CsLocal result, List<MatchPattern> matchPatterns, int index)
+    {
+        MatchPattern pattern = matchPatterns[index];
+
+        if (pattern is MatchDefault matchDefault)
+        {
+            CsValue value = LowerExpr(matchDefault.Result);
+            CsInstructions.Add(new CsAssign(result, value));
+            return;
+        }
+
+        MatchArm arm = (MatchArm)pattern;
+
+        CsValue armPattern = LowerExpr(arm.Pattern);
+
+        CsValue condition = new CsBinary(
+            TokenType.IsEqual,
+            scrutinee,
+            armPattern,
+            arm.Pattern.Position
+        );
+
+        CsInstructions.Add(new CsIfStart(condition));
+
+        _scopes.BeginScope();
+
+        CsValue armResult = LowerExpr(arm.Result);
+        CsInstructions.Add(new CsAssign(result, armResult));
+
+        _scopes.EndScope();
+
+        CsInstructions.Add(new CsIfEnd());
+
+        if (index + 1 < matchPatterns.Count)
+        {
+            CsInstructions.Add(new CsElseStart());
+
+            LowerMatchPatterns(scrutinee, result, matchPatterns, index + 1);
+
+            CsInstructions.Add(new CsElseEnd());
+        }
     }
 }

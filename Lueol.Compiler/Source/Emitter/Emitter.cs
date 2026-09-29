@@ -79,6 +79,22 @@ class Emitter
                     break;
                 }
 
+            case CsElseIfStart csElseIfStart:
+                {
+                    string condition = EmitValue(csElseIfStart.Condition);
+
+                    EmitLine($"else if ({condition}.IsTruthy())");
+                    EmitLine("{");
+
+                    IncreaseIndent();
+
+                    EmitInstructionsUntil<CsElseIfEnd>();
+
+                    DecreaseIndent();
+                    EmitLine("}");
+                    break;
+                }
+
             case CsElseStart:
                 {
                     EmitLine($"else");

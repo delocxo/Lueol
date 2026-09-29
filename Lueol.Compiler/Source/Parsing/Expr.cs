@@ -18,3 +18,9 @@ record IfExpr(Expr Expr, List<Expr> IfBody, List<Expr>? ElseBody, Position Posit
 record WhileExpr(Expr Expr, List<Expr> Body, Position Position) : Expr(Position);
 record BreakExpr(Expr? Expr, Position Position) : Expr(Position);
 record ContinueExpr(Position Position) : Expr(Position);
+
+abstract record MatchPattern;
+record MatchArm(Expr Pattern, Expr Result) : MatchPattern;
+record MatchDefault(Expr Result) : MatchPattern;
+
+record MatchExpr(Expr Scutinee, List<MatchPattern> Patterns, Position Position) : Expr(Position);

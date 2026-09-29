@@ -270,6 +270,45 @@ class Parser
             return new ContinueExpr(token.Position);
         }
 
+        else if (Match(TokenType.Match))
+        {
+            MatchPattern ParsePattern()
+            {
+                if (Match(TokenType.Default))
+                {
+                    Expect(TokenType.Arrow);
+
+                    Expr defaultResult = ParseExpr();
+
+                    return new MatchDefault(defaultResult);
+                }
+
+                Expr pattern = ParseExpr();
+
+                Expect(TokenType.Arrow);
+
+                Expr result = ParseExpr();
+
+                return new MatchArm(pattern, result);
+            }
+
+            Expr scrutinee = ParseExpr();
+
+            Expect(TokenType.LeftBrace);
+
+            if (Match(TokenType.RightBrace))
+                return new MatchExpr(scrutinee, [], token.Position);
+
+            List<MatchPattern> matchPatterns = [ParsePattern()];
+
+            while (Match(TokenType.Comma))
+                matchPatterns.Add(ParsePattern());
+
+            Expect(TokenType.RightBrace);
+
+            return new MatchExpr(scrutinee, matchPatterns, token.Position);
+        }
+
         throw ThrowUnexpected();
     }
 

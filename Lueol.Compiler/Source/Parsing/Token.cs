@@ -3,7 +3,7 @@ internal enum TokenType
     String, Number, Identifier,
 
     True, False, Nil, Let, Const, If, Else,
-    While, Break, Continue,
+    While, Break, Continue, Match, Default,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,
@@ -13,7 +13,8 @@ internal enum TokenType
 
     Equal, Semicolon, LeftBracket, RightBracket,
     LeftBrace, RightBrace, LeftParen, RightParen,
-    Comma, Period, Hash, Arrow, At,
+    Comma, Period, Hash, Arrow, At, UnderScore,
+
     Eof,
 }
 
