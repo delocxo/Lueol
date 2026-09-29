@@ -3,6 +3,7 @@ internal enum TokenType
     String, Number, Identifier,
 
     True, False, Nil, Let, Const, If, Else,
+    While, Break, Continue,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,

@@ -15,7 +15,7 @@ abstract record CsValue
 
 record CsLiteral(object Value) : CsValue;
 record CsLocal(string Name) : CsValue;
-record CsNil() : CsValue;
+record CsNil : CsValue;
 record CsUnary(TokenType Op, CsValue Right, Position Position) : CsValue;
 record CsBinary(TokenType Op, CsValue Left, CsValue Right, Position Position) : CsValue;
 
@@ -38,3 +38,8 @@ record CsIfStart(CsValue Condition) : CsInstruction;
 record CsElseStart : CsInstruction;
 record CsElseEnd : CsInstruction;
 record CsIfEnd : CsInstruction;
+record CsWhileStart : CsInstruction;
+record CsWhileCondition(CsValue Condition) : CsInstruction;
+record CsWhileEnd : CsInstruction;
+record CsBreak : CsInstruction;
+record CsContinue : CsInstruction;

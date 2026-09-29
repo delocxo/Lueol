@@ -92,6 +92,40 @@ class Emitter
                     EmitLine("}");
                     break;
                 }
+
+            case CsWhileStart:
+                {
+                    EmitLine("while (true)");
+                    EmitLine("{");
+                    IncreaseIndent();
+                    break;
+                }
+
+            case CsWhileCondition whileCondition:
+                {
+                    string condition = EmitValue(whileCondition.Condition);
+
+                    EmitLine($"if (!{condition}.IsTruthy())");
+                    IncreaseIndent();
+                    EmitLine("break;");
+                    DecreaseIndent();
+                    break;
+                }
+
+            case CsWhileEnd:
+                {
+                    DecreaseIndent();
+                    EmitLine("}");
+                    break;
+                }
+
+            case CsBreak:
+                EmitLine("break;");
+                break;
+
+            case CsContinue:
+                EmitLine("continue;");
+                break;
         }
     }
 
@@ -156,7 +190,10 @@ class Emitter
                         TokenType.LessEq => "LessEq",
                         TokenType.GreaterEq => "GreaterEq",
 
-                        _ => throw new UnreachableException()
+                        TokenType.IsEqual => "Equals",
+                        TokenType.NotEqual => "NotEquals",
+
+                        _ => throw new UnreachableException("Invalid binary operator")
                     };
 
                     string tempName = GetTemp();

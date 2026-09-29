@@ -172,6 +172,14 @@ readonly struct Value
         };
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Value Equals(Value other)
+        => new Value(Compare(other));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Value NotEqual(Value other)
+    => new Value(!Compare(other));
+
     public override string ToString()
     {
         return Kind switch

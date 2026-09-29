@@ -16,7 +16,10 @@ class Lexer
             { "let", TokenType.Let },
             { "const", TokenType.Const },
             { "if", TokenType.If },
-            { "else", TokenType.Else }
+            { "else", TokenType.Else },
+            { "while", TokenType.While },
+            { "break", TokenType.Break },
+            { "continue", TokenType.Continue }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

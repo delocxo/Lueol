@@ -59,6 +59,7 @@ class Lowerer
     public Dictionary<CsLocal, string> MangledNames = new(ReferenceEqualityComparer.Instance);
     Scopes _scopes = new Scopes();
     long _nextLocalIndex = 0;
+    Stack<CsLocal> _loopStack = [];
 
     public CsValue LowerExprs(List<Expr> exprs)
     {
@@ -202,6 +203,52 @@ class Lowerer
 
                     return csLocal;
                 }
+
+            case WhileExpr whileExpr:
+                {
+                    CsLocal csLocal = new CsLocal("lowerer_temp");
+
+                    CsInstructions.Add(new CsDeclare(csLocal, false, new CsNil()));
+
+                    CsInstructions.Add(new CsWhileStart());
+
+                    CsValue condition = LowerExpr(whileExpr.Expr);
+
+                    CsInstructions.Add(new CsWhileCondition(condition));
+
+                    _scopes.BeginScope();
+
+                    _loopStack.Push(csLocal);
+
+                    CsValue whileLast = LowerExprs(whileExpr.Body);
+                    CsInstructions.Add(new CsAssign(csLocal, whileLast));
+
+                    _loopStack.Pop();
+
+                    _scopes.EndScope();
+
+                    CsInstructions.Add(new CsWhileEnd());
+
+                    return csLocal;
+                }
+
+            case BreakExpr breakExpr:
+                {
+                    CsValue csValue = breakExpr.Expr != null
+                        ? LowerExpr(breakExpr.Expr)
+                        : new CsNil();
+
+                    CsLocal loopLocal = _loopStack.Peek();
+
+                    CsInstructions.Add(new CsAssign(loopLocal, csValue));
+                    CsInstructions.Add(new CsBreak());
+
+                    return csValue;
+                }
+
+            case ContinueExpr:
+                CsInstructions.Add(new CsContinue());
+                return new CsNil();
         }
 
         throw new Error($"'{expr.GetType().Name}' is an invalid expression", expr.Position);

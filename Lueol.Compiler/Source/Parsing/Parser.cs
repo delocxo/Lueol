@@ -246,6 +246,30 @@ class Parser
             return new IfExpr(condition, body, elseBody, token.Position);
         }
 
+        else if (Match(TokenType.While))
+        {
+            Expr condition = ParseExpr();
+
+            List<Expr> body = ParseBody();
+
+            return new WhileExpr(condition, body, token.Position);
+        }
+
+        else if (Match(TokenType.Break))
+        {
+            if (Check(TokenType.Semicolon))
+                return new BreakExpr(null, token.Position);
+
+            Expr expr = ParseExpr();
+
+            return new BreakExpr(expr, token.Position);
+        }
+
+        else if (Match(TokenType.Continue))
+        {
+            return new ContinueExpr(token.Position);
+        }
+
         throw ThrowUnexpected();
     }
 

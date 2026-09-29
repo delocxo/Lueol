@@ -6,6 +6,8 @@ static class Sematics
             CheckExpr(expr);
     }
 
+    static int _loopDepth = 0;
+
     static void CheckExpr(Expr expr)
     {
         switch (expr)
@@ -39,6 +41,31 @@ static class Sematics
                         Check(ifExpr.ElseBody);
                     break;
                 }
+
+            case WhileExpr whileExpr:
+                {
+                    CheckExpr(whileExpr.Expr);
+                    _loopDepth++;
+                    Check(whileExpr.Body);
+                    _loopDepth--;
+                    break;
+                }
+
+            case BreakExpr breakExpr:
+                {
+                    if (_loopDepth <= 0)
+                        throw new Error("Break cannot be used outside a loop", breakExpr.Position);
+
+                    if (breakExpr.Expr != null)
+                        CheckExpr(breakExpr.Expr);
+
+                    break;
+                }
+
+            case ContinueExpr continueExpr:
+                if (_loopDepth <= 0)
+                    throw new Error("Continue cannot be used outside a loop", continueExpr.Position);
+                break;
         }
     }
 }
