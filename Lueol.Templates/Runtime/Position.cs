@@ -1,0 +1,1 @@
+readonly record struct Position(uint Line, uint Column, string Source);

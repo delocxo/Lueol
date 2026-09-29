@@ -1,0 +1,16 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+abstract record Expr(Position Position);
+record IntExpr(long Value, Position Position) : Expr(Position);
+record FloatExpr(double Value, Position Position) : Expr(Position);
+record StringExpr(string Value, Position Position) : Expr(Position);
+record BoolExpr(bool Value, Position Position) : Expr(Position);
+record NilExpr(Position Position) : Expr(Position);
+record NameExpr(string Name, Position Position) : Expr(Position);
+record UnaryExpr(Expr Right, TokenType Op, Position Position) : Expr(Position);
+record BinaryExpr(Expr Left, Expr Right, TokenType Op, Position Position) : Expr(Position);
+record LetExpr(string Name, Expr Expr, Position Position) : Expr(Position);
+record ConstExpr(string Name, Expr Expr, Position Position) : Expr(Position);
+record AssignExpr(string Name, Expr Expr, Position Position) : Expr(Position);

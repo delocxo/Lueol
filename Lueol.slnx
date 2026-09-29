@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Lueol.Compiler/Lueol.Compiler.csproj" />
+  <Project Path="Lueol.Templates/Lueol.Templates.csproj" />
+</Solution>
