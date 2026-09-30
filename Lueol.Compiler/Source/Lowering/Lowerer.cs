@@ -435,6 +435,25 @@ class Lowerer
                     return (new CsMemberSet(target, memberExpr.Member, value, memberExpr.Position), false);
                 }
 
+            case FlowExpr flowExpr:
+                {
+                    CsValue left = LowerExpr(flowExpr.Input).Value;
+
+                    CsLocal valueLocal = new CsLocal("value");
+
+                    _scopes.BeginScope();
+
+                    CsInstructions.Add(new CsDeclare(valueLocal, false, left));
+
+                    _scopes.Define(valueLocal, false, flowExpr.Position);
+
+                    CsValue target = LowerExpr(flowExpr.Target).Value;
+
+                    _scopes.EndScope();
+
+                    return (target, false);
+                }
+
         }
 
         throw new Error($"'{expr.GetType().Name}' is an invalid expression", expr.Position);

@@ -348,7 +348,10 @@ class Parser
 
         else if (Match(TokenType.Def))
         {
-            List<string> parameters = ParseNames(TokenType.LeftParen, TokenType.RightParen);
+            List<string> parameters = [];
+
+            if (Check(TokenType.LeftParen))
+                parameters = ParseNames(TokenType.LeftParen, TokenType.RightParen);
 
             List<Expr> body = ParseBody();
 
@@ -612,9 +615,27 @@ class Parser
         return left;
     }
 
-    Expr ParseAssign()
+    Expr ParseFlow()
     {
         Expr left = ParseOr();
+
+        while (Check(TokenType.Flow))
+        {
+            Position position = Current().Position;
+
+            Next();
+
+            Expr target = ParseOr();
+
+            left = new FlowExpr(left, target, position);
+        }
+
+        return left;
+    }
+
+    Expr ParseAssign()
+    {
+        Expr left = ParseFlow();
 
         if (Match(TokenType.Equal))
         {
