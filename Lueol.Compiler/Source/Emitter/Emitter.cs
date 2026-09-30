@@ -2,9 +2,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 
+record PositionCache(string Name, string Declaration);
+
 class Emitter
 {
     public StringBuilder Result { get; } = new StringBuilder();
+    public Dictionary<string, PositionCache> PositionsCache { get; } = [];
 
     List<CsInstruction> _instructions;
     Dictionary<CsLocal, string> _mangledNames;
@@ -12,11 +15,13 @@ class Emitter
     int _indentLevel = 1;
     int _indentSize = 4;
     int _instructionIndex = 0;
+    bool _optimize;
 
-    public Emitter(Lowerer lowerer)
+    public Emitter(Lowerer lowerer, bool optimize)
     {
         _instructions = lowerer.CsInstructions;
         _mangledNames = lowerer.MangledNames;
+        _optimize = optimize;
     }
 
     public void EmitInstructions()
@@ -361,7 +366,18 @@ class Emitter
 
     void EmitPosition(Position position)
     {
-        EmitLine($"RuntimeState.Position = new Position({position.Line}, {position.Column}, \"{ToCSharpString(position.Source)}\");");
+        if (_optimize)
+            return;
+        string key = $"new Position({position.Line}, {position.Column}, \"{ToCSharpString(position.Source)}\")";
+        if (!PositionsCache.TryGetValue(key, out var positionCache))
+        {
+            string name = GetTemp();
+            var cache = new PositionCache(name,
+            $"    Position {name} = {key};");
+            PositionsCache[key] = cache;
+            positionCache = cache;
+        }
+        EmitLine($"runtimeContext.Position = {positionCache!.Name};");
     }
 
     void IncreaseIndent() => _indentLevel++;

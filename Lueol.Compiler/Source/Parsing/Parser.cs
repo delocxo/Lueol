@@ -635,5 +635,5 @@ class Parser
         return left;
     }
 
-    Expr ParseExpr() => ParseOr();
+    Expr ParseExpr() => ParseAssign();
 }

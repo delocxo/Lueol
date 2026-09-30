@@ -15,7 +15,7 @@ namespace Builtins
         }
     }
 
-    record ShapeObject(Dictionary<string, Value> Members) : ILueolDefaultEquality, ILueolToString, ILueolGetMember
+    record ShapeObject(Dictionary<string, Value> Members) : ILueolDefaultEquality, ILueolDefaultToString, ILueolGetMember, ILueolSetMember
     {
         public static ShapeObject Create(ReadOnlySpan<(string Name, Value Value)> values)
         {
@@ -25,6 +25,12 @@ namespace Builtins
                     throw new DuplicateNameException($"'{pair.Name}' is a duplicate field");
             return new ShapeObject(members);
         }
+
+        public static ShapeObject CreateResult(bool success, Value value)
+            => Create([
+                ("success", new Value(true)),
+                ("value", value)
+            ]);
 
         public bool GetMember(string name, out Value value)
         {
@@ -40,8 +46,12 @@ namespace Builtins
             return true;
         }
 
-        public string ToLueolToString()
-            => "<shape>";
+        public void SetMember(string name, Value value)
+        {
+            if (!Members.ContainsKey(name))
+                throw new UnknownMemberException($"'{name}' is not a valid member of shape");
+            Members[name] = value;
+        }
 
         static Dictionary<string, Function> _memberFunctions = new Dictionary<string, Function>
         {

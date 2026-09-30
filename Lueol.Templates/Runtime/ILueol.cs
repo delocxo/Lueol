@@ -39,6 +39,13 @@ interface ILueolToString
     public string ToLueolToString();
 }
 
+interface ILueolDefaultToString
+{
+    public string ToLueolToString()
+        => $"<{GetType().Name}>";
+}
+
+
 interface ILueolIsTruthy
 {
     public bool IsTruthy();

@@ -99,6 +99,9 @@ readonly struct Value
     public long AsInt() => unchecked((long)Payload);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int AsInt32() => unchecked((int)(long)Payload);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double AsFloat() => BitConverter.UInt64BitsToDouble(Payload);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -125,7 +128,7 @@ readonly struct Value
     public T As<T>()
     {
         if (Object is not T obj)
-            throw new InvalidKindObjectException("Invalid kind object");
+            throw new InvalidKindObjectException($"Expected '{nameof(T)}'");
         return obj;
     }
 
@@ -243,6 +246,9 @@ readonly struct Value
     {
         if (Object is ILueolToString lueolToString)
             return lueolToString.ToLueolToString();
+
+        else if (Object is ILueolDefaultToString lueolDefaultToString)
+            return lueolDefaultToString.ToLueolToString();
 
         throw new InvalidKindException($"{GetNameInQuotes()} cannot be converted into a string");
     }

@@ -6,14 +6,16 @@ class SourceGenerator
     readonly string _exePath = AppContext.BaseDirectory;
     string _user;
     List<UseStmt> _useStmts;
+    Dictionary<string, PositionCache> _positionsCache;
 
-    public SourceGenerator(StringBuilder user, List<UseStmt> useStmts)
+    public SourceGenerator(StringBuilder user, List<UseStmt> useStmts, Dictionary<string, PositionCache> positionsCache)
     {
         _user = user.ToString();
         _useStmts = useStmts;
+        _positionsCache = positionsCache;
     }
 
-    public string Generate()
+    public string Generate(bool optimize)
     {
         StringBuilder result = new StringBuilder();
 
@@ -34,6 +36,13 @@ class SourceGenerator
 
         result.AppendLine("Value LueolMain()");
         result.AppendLine("{");
+
+        result.AppendLine("    RuntimeState.Begin();");
+        result.AppendLine("    RuntimeContext runtimeContext = RuntimeState.Context;");
+
+        foreach (var positionCache in _positionsCache.Values)
+            result.AppendLine(positionCache.Declaration);
+
         result.Append(_user);
         result.AppendLine("}");
 
@@ -47,6 +56,11 @@ class SourceGenerator
 
         result.AppendLine("catch (Exception e)");
         result.AppendLine("{");
+        result.AppendLine($"    if ({(optimize ? "true" : "false")})");
+        result.AppendLine("    {");
+        result.AppendLine("        Console.Error.WriteLine($\"[{e.GetType().Name}]: {e.Message}\");");
+        result.AppendLine("        return 1;");
+        result.AppendLine("    }");
         result.AppendLine("    Position pos = RuntimeState.Position;");
         result.AppendLine("    Console.Error.WriteLine($\"[{e.GetType().Name}]: {pos.Line}:{pos.Column}:{pos.Source}: {e.Message}\");");
         result.AppendLine("    return 1;");
