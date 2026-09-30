@@ -4,6 +4,7 @@ internal enum TokenType
 
     True, False, Nil, Let, Const, If, Else,
     While, Break, Continue, Match, Default,
+    Def, Return, Overload,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,

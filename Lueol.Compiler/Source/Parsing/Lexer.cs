@@ -21,7 +21,10 @@ class Lexer
             { "break", TokenType.Break },
             { "continue", TokenType.Continue },
             { "match", TokenType.Match },
-            { "default", TokenType.Default }
+            { "default", TokenType.Default },
+            { "def", TokenType.Def },
+            { "return", TokenType.Return },
+            { "overload", TokenType.Overload }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

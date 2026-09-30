@@ -62,14 +62,23 @@ class Lowerer
     Scopes _scopes = new Scopes();
     long _nextLocalIndex = 0;
     Stack<CsLocal> _loopStack = [];
+    Stack<CsLocal> _functionStack = [];
+    long _nextFunctionIndex = 0;
 
     public CsValue LowerExprs(List<Expr> exprs)
     {
         for (int i = 0; i < exprs.Count; i++)
         {
             Expr expr = exprs[i];
+            var lowered = LowerExpr(expr);
             if (i == exprs.Count - 1)
-                return LowerExpr(expr);
+                return lowered.Value;
+
+            if (!lowered.IsMaterialized)
+            {
+                CsLocal temp = new CsLocal("lowerer_temp");
+                CsInstructions.Add(new CsDeclare(temp, false, lowered.Value));
+            }
             LowerExpr(expr);
         }
         return new CsNil();
@@ -88,48 +97,54 @@ class Lowerer
         }
     }
 
-    CsValue LowerExpr(Expr expr)
+    (CsValue Value, bool IsMaterialized) LowerExpr(Expr expr)
     {
         switch (expr)
         {
             case IntExpr intExpr:
-                return new CsLiteral(intExpr.Value);
+                return (new CsLiteral(intExpr.Value), true);
 
             case FloatExpr floatExpr:
-                return new CsLiteral(floatExpr.Value);
+                return (new CsLiteral(floatExpr.Value), true);
 
             case StringExpr stringExpr:
-                return new CsLiteral(stringExpr.Value);
+                return (new CsLiteral(stringExpr.Value), true);
 
             case BoolExpr boolExpr:
-                return new CsLiteral(boolExpr.Value);
+                return (new CsLiteral(boolExpr.Value), true);
 
             case NilExpr:
-                return new CsNil();
+                return (new CsNil(), true);
 
             case NameExpr nameExpr:
-                return _scopes.Resolve(nameExpr.Name, nameExpr.Position).CsLocal;
+                {
+                    if (_scopes.TryResolve(nameExpr.Name, out var symbol))
+                        return (symbol!.CsLocal, true);
+                    return (new CsGetGlobal(nameExpr.Name, nameExpr.Position), false);
+                }
 
             case UnaryExpr unaryExpr:
                 {
-                    CsValue right = LowerExpr(unaryExpr.Right);
-                    return new CsUnary(unaryExpr.Op, right, unaryExpr.Position);
+                    CsValue right = LowerExpr(unaryExpr.Right).Value;
+                    return (new CsUnary(unaryExpr.Op, right, unaryExpr.Position), false);
                 }
 
             case BinaryExpr binaryExpr:
                 {
                     if (binaryExpr.Op == TokenType.And)
-                        return LowerAnd(binaryExpr);
+                        return (LowerAnd(binaryExpr), true);
                     else if (binaryExpr.Op == TokenType.Or)
-                        return LowerOr(binaryExpr);
-                    CsValue left = LowerExpr(binaryExpr.Left);
-                    CsValue right = LowerExpr(binaryExpr.Right);
-                    return new CsBinary(binaryExpr.Op, left, right, binaryExpr.Position);
+                        return (LowerOr(binaryExpr), true);
+
+                    CsValue left = LowerExpr(binaryExpr.Left).Value;
+                    CsValue right = LowerExpr(binaryExpr.Right).Value;
+
+                    return (new CsBinary(binaryExpr.Op, left, right, binaryExpr.Position), false);
                 }
 
             case LetExpr letExpr:
                 {
-                    CsValue value = LowerExpr(letExpr.Expr);
+                    CsValue value = LowerExpr(letExpr.Expr).Value;
 
                     CsLocal csLocal = new CsLocal(letExpr.Name);
 
@@ -137,12 +152,12 @@ class Lowerer
 
                     CsInstructions.Add(new CsDeclare(csLocal, false, value));
 
-                    return csLocal;
+                    return (csLocal, true);
                 }
 
             case ConstExpr constExpr:
                 {
-                    CsValue value = LowerExpr(constExpr.Expr);
+                    CsValue value = LowerExpr(constExpr.Expr).Value;
 
                     CsLocal csLocal = new CsLocal(constExpr.Name);
 
@@ -150,18 +165,18 @@ class Lowerer
 
                     CsInstructions.Add(new CsDeclare(csLocal, true, value));
 
-                    return csLocal;
+                    return (csLocal, true);
                 }
 
             case AssignExpr assignExpr:
                 {
-                    CsValue value = LowerExpr(assignExpr.Expr);
+                    CsValue value = LowerExpr(assignExpr.Expr).Value;
 
                     CsLocal csLocal = _scopes.Set(assignExpr.Name, assignExpr.Position);
 
                     CsInstructions.Add(new CsAssign(csLocal, value));
 
-                    return csLocal;
+                    return (csLocal, true);
                 }
 
             case IfExpr ifExpr:
@@ -172,7 +187,7 @@ class Lowerer
 
                     // IF
 
-                    CsValue condition = LowerExpr(ifExpr.Expr);
+                    CsValue condition = LowerExpr(ifExpr.Expr).Value;
 
                     CsInstructions.Add(new CsIfStart(condition));
 
@@ -203,7 +218,7 @@ class Lowerer
                         CsInstructions.Add(new CsElseEnd());
                     }
 
-                    return csLocal;
+                    return (csLocal, true);
                 }
 
             case WhileExpr whileExpr:
@@ -214,7 +229,7 @@ class Lowerer
 
                     CsInstructions.Add(new CsWhileStart());
 
-                    CsValue condition = LowerExpr(whileExpr.Expr);
+                    CsValue condition = LowerExpr(whileExpr.Expr).Value;
 
                     CsInstructions.Add(new CsWhileCondition(condition));
 
@@ -231,13 +246,13 @@ class Lowerer
 
                     CsInstructions.Add(new CsWhileEnd());
 
-                    return csLocal;
+                    return (csLocal, true);
                 }
 
             case BreakExpr breakExpr:
                 {
                     CsValue csValue = breakExpr.Expr != null
-                        ? LowerExpr(breakExpr.Expr)
+                        ? LowerExpr(breakExpr.Expr).Value
                         : new CsNil();
 
                     CsLocal loopLocal = _loopStack.Peek();
@@ -245,12 +260,12 @@ class Lowerer
                     CsInstructions.Add(new CsAssign(loopLocal, csValue));
                     CsInstructions.Add(new CsBreak());
 
-                    return csValue;
+                    return (csValue, true);
                 }
 
             case ContinueExpr:
                 CsInstructions.Add(new CsContinue());
-                return new CsNil();
+                return (new CsNil(), true);
 
             case MatchExpr matchExpr:
                 {
@@ -258,7 +273,7 @@ class Lowerer
 
                     CsInstructions.Add(new CsDeclare(resultLocal, false, new CsNil()));
 
-                    CsValue scrutinee = LowerExpr(matchExpr.Scutinee);
+                    CsValue scrutinee = LowerExpr(matchExpr.Scutinee).Value;
 
                     CsLocal scrutineeLocal = new CsLocal("lowerer_temp");
 
@@ -266,12 +281,12 @@ class Lowerer
 
                     LowerMatchPatterns(scrutineeLocal, resultLocal, matchExpr.Patterns, 0);
 
-                    return resultLocal;
+                    return (resultLocal, true);
                 }
 
             case BlockExpr blockExpr:
                 {
-                    CsLocal resultLocal = new CsLocal("result_local");
+                    CsLocal resultLocal = new CsLocal("lowerer_temp");
 
                     CsInstructions.Add(new CsDeclare(resultLocal, false, new CsNil()));
 
@@ -286,7 +301,73 @@ class Lowerer
 
                     CsInstructions.Add(new CsBlockEnd());
 
-                    return resultLocal;
+                    return (resultLocal, true);
+                }
+
+            case FunctionExpr functionExpr:
+                {
+                    string functionName = $"actual_function_{_nextFunctionIndex++}";
+
+                    CsInstructions.Add(new CsFunctionStart(functionName, functionExpr.Parameters.ToArray()));
+
+                    _scopes.BeginScope();
+
+                    CsLocal returnLocal = new CsLocal("generated_function_return");
+
+                    CsInstructions.Add(new CsDeclare(returnLocal, false, new CsNil()));
+
+                    _functionStack.Push(returnLocal);
+
+                    for (int i = 0; i < functionExpr.Parameters.Count; i++)
+                    {
+                        string param = functionExpr.Parameters[i];
+
+                        CsLocal paramLocal = new CsLocal(param);
+
+                        _scopes.Define(paramLocal, false, functionExpr.Position);
+
+                        CsInstructions.Add(new CsDeclare(paramLocal, false, new CsArgument(i)));
+                    }
+
+                    CsValue bodyResult = LowerExprs(functionExpr.Exprs);
+
+                    CsInstructions.Add(new CsAssign(returnLocal, bodyResult));
+
+                    CsInstructions.Add(new CsReturn(returnLocal));
+
+                    _functionStack.Pop();
+
+                    CsInstructions.Add(new CsFunctionEnd());
+
+                    CsLocal functionLocal = new CsLocal("function_value");
+
+                    CsInstructions.Add(new CsDeclare(functionLocal, false, new CsFunctionValue(functionName, functionExpr.Parameters.ToArray())));
+
+                    return (functionLocal, true);
+                }
+
+            case ReturnExpr returnExpr:
+                {
+                    CsValue csValue = returnExpr.Expr != null
+                        ? LowerExpr(returnExpr.Expr).Value
+                        : new CsNil();
+
+                    CsLocal returnLocal = _functionStack.Peek();
+
+                    CsInstructions.Add(new CsAssign(returnLocal, csValue));
+                    CsInstructions.Add(new CsReturn(returnLocal));
+
+                    return (csValue, true);
+                }
+
+            case CallExpr callExpr:
+                {
+                    CsValue target = LowerExpr(callExpr.Target).Value;
+                    List<CsValue> args = callExpr.Exprs
+                        .Select(expr => LowerExpr(expr).Value)
+                        .ToList();
+
+                    return (new CsCall(target, args, callExpr.Position), false);
                 }
         }
 
@@ -299,13 +380,13 @@ class Lowerer
 
         CsInstructions.Add(new CsDeclare(csLocal, false, new CsLiteral(false)));
 
-        CsValue left = LowerExpr(binaryExpr.Left);
+        CsValue left = LowerExpr(binaryExpr.Left).Value;
 
         CsInstructions.Add(new CsIfStart(left));
 
         _scopes.BeginScope();
 
-        CsValue right = LowerExpr(binaryExpr.Right);
+        CsValue right = LowerExpr(binaryExpr.Right).Value;
 
         CsInstructions.Add(new CsIfStart(right));
         CsInstructions.Add(new CsAssign(csLocal, new CsLiteral(true)));
@@ -324,7 +405,7 @@ class Lowerer
 
         CsInstructions.Add(new CsDeclare(csLocal, false, new CsLiteral(false)));
 
-        CsValue left = LowerExpr(binaryExpr.Left);
+        CsValue left = LowerExpr(binaryExpr.Left).Value;
 
         CsInstructions.Add(new CsIfStart(left));
         CsInstructions.Add(new CsAssign(csLocal, new CsLiteral(true)));
@@ -334,7 +415,7 @@ class Lowerer
 
         _scopes.BeginScope();
 
-        CsValue right = LowerExpr(binaryExpr.Right);
+        CsValue right = LowerExpr(binaryExpr.Right).Value;
 
         CsInstructions.Add(new CsIfStart(right));
         CsInstructions.Add(new CsAssign(csLocal, new CsLiteral(true)));
@@ -353,14 +434,14 @@ class Lowerer
 
         if (pattern is MatchDefault matchDefault)
         {
-            CsValue value = LowerExpr(matchDefault.Result);
+            CsValue value = LowerExpr(matchDefault.Result).Value;
             CsInstructions.Add(new CsAssign(result, value));
             return;
         }
 
         MatchArm arm = (MatchArm)pattern;
 
-        CsValue armPattern = LowerExpr(arm.Pattern);
+        CsValue armPattern = LowerExpr(arm.Pattern).Value;
 
         CsValue condition = new CsBinary(
             TokenType.IsEqual,
@@ -373,7 +454,7 @@ class Lowerer
 
         _scopes.BeginScope();
 
-        CsValue armResult = LowerExpr(arm.Result);
+        CsValue armResult = LowerExpr(arm.Result).Value;
         CsInstructions.Add(new CsAssign(result, armResult));
 
         _scopes.EndScope();

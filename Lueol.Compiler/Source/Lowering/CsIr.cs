@@ -18,6 +18,10 @@ record CsLocal(string Name) : CsValue;
 record CsNil : CsValue;
 record CsUnary(TokenType Op, CsValue Right, Position Position) : CsValue;
 record CsBinary(TokenType Op, CsValue Left, CsValue Right, Position Position) : CsValue;
+record CsArgument(int Index) : CsValue;
+record CsFunctionValue(string GeneratedName, string[] Parameters) : CsValue;
+record CsCall(CsValue Target, List<CsValue> Values, Position Position) : CsValue;
+record CsGetGlobal(string Name, Position Position) : CsValue;
 
 
 abstract record CsInstruction
@@ -47,3 +51,6 @@ record CsBreak : CsInstruction;
 record CsContinue : CsInstruction;
 record CsBlockStart : CsInstruction;
 record CsBlockEnd : CsInstruction;
+record CsReturn(CsValue CsValue) : CsInstruction;
+record CsFunctionStart(string GeneratedName, string[] Parameters) : CsInstruction;
+record CsFunctionEnd : CsInstruction;

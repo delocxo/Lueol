@@ -1,5 +1,5 @@
 const add = 
-    fn(x, y, z)
+    def(x, y, z)
     {
-        
+
     }

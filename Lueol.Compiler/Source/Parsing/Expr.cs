@@ -25,3 +25,6 @@ record MatchDefault(Expr Result) : MatchPattern;
 
 record MatchExpr(Expr Scutinee, List<MatchPattern> Patterns, Position Position) : Expr(Position);
 record BlockExpr(List<Expr> Exprs, Position Position) : Expr(Position);
+record FunctionExpr(List<string> Parameters, List<Expr> Exprs, Position Position) : Expr(Position);
+record ReturnExpr(Expr? Expr, Position Position) : Expr(Position);
+record CallExpr(Expr Target, List<Expr> Exprs, Position Position) : Expr(Position);

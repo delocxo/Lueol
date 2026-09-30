@@ -102,6 +102,34 @@ static class Sematics
             case BlockExpr blockExpr:
                 Check(blockExpr.Exprs);
                 break;
+
+            case FunctionExpr functionExpr:
+                {
+                    HashSet<string> parameters = [];
+
+                    foreach (var param in functionExpr.Parameters)
+                        if (!parameters.Add(param))
+                            throw new Error($"'{param}' is a duplicate function parameter", functionExpr.Position);
+
+                    Check(functionExpr.Exprs);
+                    break;
+                }
+
+            case ReturnExpr returnExpr:
+                {
+                    if (returnExpr.Expr != null)
+                        CheckExpr(returnExpr.Expr);
+
+                    break;
+                }
+
+            case CallExpr callExpr:
+                {
+                    CheckExpr(callExpr.Target);
+                    foreach (Expr arg in callExpr.Exprs)
+                        CheckExpr(arg);
+                    break;
+                }
         }
     }
 }

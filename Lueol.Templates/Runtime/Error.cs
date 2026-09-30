@@ -48,3 +48,14 @@ class UnaryException : Exception
     public static UnaryException Unary(Value right, string op)
         => new UnaryException($"Cannot apply '{op}' to {right.GetNameInQuotes()}");
 }
+
+class ArgumentCountException : Exception
+{
+    public ArgumentCountException()
+    {
+    }
+
+    public ArgumentCountException(string? message) : base(message)
+    {
+    }
+}

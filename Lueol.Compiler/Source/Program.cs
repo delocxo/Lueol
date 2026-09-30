@@ -16,7 +16,11 @@ List<Expr> exprs = parser.Parse();
 Sematics.Check(exprs);
 
 Lowerer lowerer = new Lowerer();
-lowerer.LowerExprs(exprs);
+CsValue last = lowerer.LowerExprs(exprs);
+if (lowerer.CsInstructions.Count == 0 || lowerer.CsInstructions[^1] is not CsReturn)
+{
+    lowerer.CsInstructions.Add(new CsReturn(last));
+}
 lowerer.MangleNames();
 // foreach (var instruction in lowerer.CsInstructions)
 //     Console.WriteLine(instruction);

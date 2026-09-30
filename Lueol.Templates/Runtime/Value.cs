@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
@@ -7,7 +8,8 @@ enum ValueKind : byte
     Float,
     String,
     Bool,
-    Nil
+    Nil,
+    Function
 }
 
 static class ValueKindNames
@@ -70,6 +72,13 @@ readonly struct Value
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Value(Function function)
+    {
+        Kind = ValueKind.Function;
+        Object = function;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Value(ValueKind kind)
     {
         Kind = kind;
@@ -107,6 +116,9 @@ readonly struct Value
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool AsBool() => Payload != 0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Function AsFunction() => (Function)Object!;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T As<T>()
@@ -168,6 +180,7 @@ readonly struct Value
             (ValueKind.String, ValueKind.String) => string.Equals(AsString(), other.AsString(), StringComparison.Ordinal),
             (ValueKind.Bool, ValueKind.Bool) => AsBool() == other.AsBool(),
             (ValueKind.Nil, ValueKind.Nil) => true,
+            (ValueKind.Function, ValueKind.Function) => AsFunction() == other.AsFunction(),
             _ => false
         };
     }
@@ -189,6 +202,7 @@ readonly struct Value
             ValueKind.String => AsString(),
             ValueKind.Bool => AsBool() ? "true" : "false",
             ValueKind.Nil => "nil",
+            ValueKind.Function => AsFunction().ToString(),
             _ => throw new InvalidKindException($"{GetNameInQuotes()} cannot be converted into a string")
         };
     }
@@ -336,4 +350,20 @@ readonly struct Value
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Value Flip() => new Value(!IsTruthy());
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Value Call(ReadOnlySpan<Value> args)
+    {
+        ExpectKind(ValueKind.Function);
+
+        Function function = AsFunction();
+
+        if (args.Length != function.Arity)
+            throw new ArgumentCountException($"{function} expects {function.Arity} argument(s), got {args.Length} argument(s)");
+
+        if (function.Target != null)
+            return function.Delegate(args, function.Target);
+
+        return function.Delegate(args, null);
+    }
 }

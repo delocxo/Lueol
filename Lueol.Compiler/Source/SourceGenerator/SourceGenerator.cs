@@ -32,7 +32,6 @@ class SourceGenerator
         result.AppendLine("Value LueolMain()");
         result.AppendLine("{");
         result.Append(_user);
-        result.AppendLine("    return Value.Nil();");
         result.AppendLine("}");
 
         result.AppendLine();

@@ -152,6 +152,26 @@ class Emitter
                 DecreaseIndent();
                 EmitLine("}");
                 break;
+
+            case CsFunctionStart csFunctionStart:
+                {
+                    EmitLine($"Value {csFunctionStart.GeneratedName}(ReadOnlySpan<Value> args, Value? target)");
+                    EmitLine("{");
+                    IncreaseIndent();
+
+                    EmitInstructionsUntil<CsFunctionEnd>();
+
+                    DecreaseIndent();
+                    EmitLine("}");
+                    break;
+                }
+
+            case CsReturn csReturn:
+                {
+                    string value = EmitValue(csReturn.CsValue);
+                    EmitLine($"return {value};");
+                    break;
+                }
         }
     }
 
@@ -217,7 +237,7 @@ class Emitter
                         TokenType.GreaterEq => "GreaterEq",
 
                         TokenType.IsEqual => "Equals",
-                        TokenType.NotEqual => "NotEquals",
+                        TokenType.NotEqual => "NotEqual",
 
                         _ => throw new UnreachableException("Invalid binary operator")
                     };
@@ -228,9 +248,45 @@ class Emitter
 
                     return tempName;
                 }
+
+            case CsArgument csArgument:
+                return $"args[{csArgument.Index}]";
+
+            case CsFunctionValue csFunctionValue:
+                {
+                    string function = $"Function.Anonymous([{string
+                        .Join(", ", csFunctionValue
+                        .Parameters
+                        .Select(x => $"\"{x}\""))}], {csFunctionValue.GeneratedName})";
+                    return NewValue(function);
+                }
+
+            case CsCall csCall:
+                {
+                    string target = EmitValue(csCall.Target);
+                    string[] parameters = csCall.Values
+                        .Select(EmitValue)
+                        .ToArray();
+
+                    EmitPosition(csCall.Position);
+
+                    string tempName = GetTemp();
+
+                    EmitLine($"Value {tempName} = {target}.Call([{string.Join(", ", parameters)}]);");
+
+                    return tempName;
+                }
+
+            case CsGetGlobal csGetGlobal:
+                {
+                    string tempName = GetTemp();
+                    EmitPosition(csGetGlobal.Position);
+                    EmitLine($"Value {tempName} = Globals.GetGlobal(\"{csGetGlobal.Name}\");");
+                    return tempName;
+                }
         }
 
-        throw new UnreachableException();
+        throw new UnreachableException($"");
     }
 
     string NewValue(string value) => $"new Value({value})";
