@@ -59,3 +59,25 @@ class ArgumentCountException : Exception
     {
     }
 }
+
+class DuplicateNameException : Exception
+{
+    public DuplicateNameException()
+    {
+    }
+
+    public DuplicateNameException(string? message) : base(message)
+    {
+    }
+}
+
+class UnknownMemberException : Exception
+{
+    public UnknownMemberException()
+    {
+    }
+
+    public UnknownMemberException(string? message) : base(message)
+    {
+    }
+}

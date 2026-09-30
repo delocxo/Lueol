@@ -34,7 +34,4 @@ record Function
 
     public static Function Normal(string name, string[] parameters, FunctionDelegate @delegate)
         => new Function(name, false, parameters, @delegate, null);
-
-    public static Function Bound(string name, string[] parameters, Value target, FunctionDelegate @delegate)
-    => new Function(name, false, parameters, @delegate, target);
 }

@@ -4,19 +4,8 @@
     return 1;
 }
 
-if (!File.Exists(args[0]))
-{
-    Console.Error.WriteLine($"File '{args[0]}' does not exist");
-    return 1;
-}
-
-List<Token> tokens = new Lexer(File.ReadAllText(args[0]), args[0]).Lex();
-Parser parser = new Parser(tokens);
-List<Expr> exprs = parser.Parse();
-Sematics.Check(exprs);
-
 Lowerer lowerer = new Lowerer();
-CsValue last = lowerer.LowerExprs(exprs);
+CsValue last = lowerer.LowerFile(args[0], null);
 if (lowerer.CsInstructions.Count == 0 || lowerer.CsInstructions[^1] is not CsReturn)
 {
     lowerer.CsInstructions.Add(new CsReturn(last));
@@ -29,7 +18,7 @@ Emitter emitter = new Emitter(lowerer);
 emitter.EmitInstructions();
 // Console.WriteLine(emitter.Result);
 
-SourceGenerator sourceGenerator = new SourceGenerator(emitter.Result);
+SourceGenerator sourceGenerator = new SourceGenerator(emitter.Result, lowerer.UseStmts);
 string result = sourceGenerator.Generate();
 File.WriteAllText("generated.cs", result);
 // Console.WriteLine(result);

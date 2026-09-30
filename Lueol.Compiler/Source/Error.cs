@@ -18,16 +18,18 @@ struct Position
 
 class Error : Exception
 {
-    Position _position;
+    Position? _position;
 
-    public Error(string message, Position position) : base(message)
+    public Error(string message, Position? position) : base(message)
     {
         _position = position;
     }
 
     public void Exit()
     {
-        Console.Error.WriteLine($"Error: {_position.Line}:{_position.Column}:{_position.Source}: {Message}");
+        if (_position != null)
+            Console.Error.WriteLine($"Error: {_position.Value.Line}:{_position.Value.Column}:{_position.Value.Source}: {Message}");
+        Console.Error.WriteLine($"Error: {Message}");
         Environment.Exit(1);
     }
 }

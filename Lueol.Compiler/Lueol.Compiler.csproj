@@ -12,7 +12,7 @@
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     <TargetPath>Templates\Runtime\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
   </None>
-
+  
   <None Include="..\Lueol.Templates\Natives\**\*.cs">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     <TargetPath>Templates\Natives\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>

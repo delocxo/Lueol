@@ -284,6 +284,46 @@ class Emitter
                     EmitLine($"Value {tempName} = Globals.GetGlobal(\"{csGetGlobal.Name}\");");
                     return tempName;
                 }
+
+            case CsIndexGet csIndexGet:
+                {
+                    string target = EmitValue(csIndexGet.Target);
+                    string index = EmitValue(csIndexGet.Index);
+                    string tempName = GetTemp();
+                    EmitPosition(csIndexGet.Position);
+                    EmitLine($"Value {tempName} = {target}.GetIndex({index});");
+                    return tempName;
+                }
+
+            case CsIndexSet csIndexSet:
+                {
+                    string target = EmitValue(csIndexSet.Target);
+                    string index = EmitValue(csIndexSet.Index);
+                    string value = EmitValue(csIndexSet.Value);
+                    string tempName = GetTemp();
+                    EmitPosition(csIndexSet.Position);
+                    EmitLine($"Value {tempName} = {target}.SetIndex({index}, {value});");
+                    return tempName;
+                }
+
+            case CsMemberGet csMemberGet:
+                {
+                    string target = EmitValue(csMemberGet.Target);
+                    string tempName = GetTemp();
+                    EmitPosition(csMemberGet.Position);
+                    EmitLine($"Value {tempName} = {target}.GetMember(\"{csMemberGet.Name}\");");
+                    return tempName;
+                }
+
+            case CsMemberSet csMemberSet:
+                {
+                    string target = EmitValue(csMemberSet.Target);
+                    string value = EmitValue(csMemberSet.Value);
+                    string tempName = GetTemp();
+                    EmitPosition(csMemberSet.Position);
+                    EmitLine($"Value {tempName} = {target}.SetMember(\"{csMemberSet.Name}\", {value});");
+                    return tempName;
+                }
         }
 
         throw new UnreachableException($"");

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+record UseStmt(string Path, Position Position);
+
 abstract record Expr(Position Position);
 record IntExpr(long Value, Position Position) : Expr(Position);
 record FloatExpr(double Value, Position Position) : Expr(Position);
@@ -28,3 +30,8 @@ record BlockExpr(List<Expr> Exprs, Position Position) : Expr(Position);
 record FunctionExpr(List<string> Parameters, List<Expr> Exprs, Position Position) : Expr(Position);
 record ReturnExpr(Expr? Expr, Position Position) : Expr(Position);
 record CallExpr(Expr Target, List<Expr> Exprs, Position Position) : Expr(Position);
+record IndexExpr(Expr Target, Expr Index, Position Position) : Expr(Position);
+record IndexSetExpr(IndexExpr IndexExpr, Expr Value) : Expr(IndexExpr.Position);
+record MemberExpr(Expr Target, string Member, Position Position) : Expr(Position);
+record MemberSetExpr(MemberExpr MemberExpr, Expr Value) : Expr(MemberExpr.Position);
+record ImportExpr(string Path, Position Position) : Expr(Position);

@@ -9,7 +9,8 @@ enum ValueKind : byte
     String,
     Bool,
     Nil,
-    Function
+    Function,
+    Object
 }
 
 static class ValueKindNames
@@ -85,9 +86,9 @@ readonly struct Value
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Value(object value, ValueKind kind)
+    public Value(object value)
     {
-        Kind = kind;
+        Kind = ValueKind.Object;
         Object = value;
     }
 
@@ -129,6 +130,18 @@ readonly struct Value
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryAs<T>(out T? value)
+    {
+        if (Object is not T obj)
+        {
+            value = default;
+            return false;
+        }
+        value = obj;
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsKind(ValueKind kind) => Kind == kind;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -164,8 +177,16 @@ readonly struct Value
         {
             ValueKind.Bool => Payload != 0,
             ValueKind.Nil => false,
-            _ => true
+            _ => ObjectIsTruthy()
         };
+    }
+
+    public bool ObjectIsTruthy()
+    {
+        if (Object is ILueolIsTruthy lueolIsTruthy)
+            return lueolIsTruthy.IsTruthy();
+
+        return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -181,8 +202,19 @@ readonly struct Value
             (ValueKind.Bool, ValueKind.Bool) => AsBool() == other.AsBool(),
             (ValueKind.Nil, ValueKind.Nil) => true,
             (ValueKind.Function, ValueKind.Function) => AsFunction() == other.AsFunction(),
-            _ => false
+            _ => CompareObject(other)
         };
+    }
+
+    public bool CompareObject(Value other)
+    {
+        if (Object is ILueolEquality lueolEquality)
+            return lueolEquality.Equality(other);
+
+        else if (Object is ILueolDefaultEquality lueolDefaultEquality)
+            return lueolDefaultEquality.DefaultEquality(other);
+
+        return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -203,8 +235,16 @@ readonly struct Value
             ValueKind.Bool => AsBool() ? "true" : "false",
             ValueKind.Nil => "nil",
             ValueKind.Function => AsFunction().ToString(),
-            _ => throw new InvalidKindException($"{GetNameInQuotes()} cannot be converted into a string")
+            _ => ObjectToString()
         };
+    }
+
+    public string ObjectToString()
+    {
+        if (Object is ILueolToString lueolToString)
+            return lueolToString.ToLueolToString();
+
+        throw new InvalidKindException($"{GetNameInQuotes()} cannot be converted into a string");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -365,5 +405,55 @@ readonly struct Value
             return function.Delegate(args, function.Target);
 
         return function.Delegate(args, null);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Value GetIndex(Value index)
+    {
+        if (IsKind(ValueKind.String))
+        {
+            int raw = (int)AsInt();
+            return new Value(AsString()[raw].ToString());
+        }
+
+        if (Object is ILueolGetIndex lueolGetIndex)
+            if (lueolGetIndex.GetIndex(index, out Value value))
+                return value;
+
+        throw new InvalidKindException($"{GetNameInQuotes()} cannot be indexed accessed");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetIndex(Value index, Value value)
+    {
+        if (Object is ILueolSetIndex lueolSetIndex)
+        {
+            lueolSetIndex.SetIndex(index, value);
+            return;
+        }
+
+        throw new InvalidKindException($"{GetNameInQuotes()} cannot be indexed accessed");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Value GetMember(string name)
+    {
+        if (Object is ILueolGetMember lueolGetMember)
+            if (lueolGetMember.GetMember(name, out Value value))
+                return value;
+
+        throw new InvalidKindException($"{GetNameInQuotes()} cannot be member accessed");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetMember(string name, Value value)
+    {
+        if (Object is ILueolSetMember lueolSetMember)
+        {
+            lueolSetMember.SetMember(name, value);
+            return;
+        }
+
+        throw new InvalidKindException($"{GetNameInQuotes()} cannot be member accessed");
     }
 }

@@ -22,7 +22,10 @@ record CsArgument(int Index) : CsValue;
 record CsFunctionValue(string GeneratedName, string[] Parameters) : CsValue;
 record CsCall(CsValue Target, List<CsValue> Values, Position Position) : CsValue;
 record CsGetGlobal(string Name, Position Position) : CsValue;
-
+record CsIndexGet(CsValue Target, CsValue Index, Position Position) : CsValue;
+record CsIndexSet(CsValue Target, CsValue Index, CsValue Value, Position Position) : CsValue;
+record CsMemberGet(CsValue Target, string Name, Position Position) : CsValue;
+record CsMemberSet(CsValue Target, string Name, CsValue Value, Position Position) : CsValue;
 
 abstract record CsInstruction
 {

@@ -58,12 +58,14 @@ class Scopes
 class Lowerer
 {
     public List<CsInstruction> CsInstructions { get; } = [];
+    public List<UseStmt> UseStmts { get; } = [];
     public Dictionary<CsLocal, string> MangledNames = new(ReferenceEqualityComparer.Instance);
     Scopes _scopes = new Scopes();
     long _nextLocalIndex = 0;
     Stack<CsLocal> _loopStack = [];
     Stack<CsLocal> _functionStack = [];
     long _nextFunctionIndex = 0;
+    Dictionary<string, bool> _compiledFiles = [];
 
     public CsValue LowerExprs(List<Expr> exprs)
     {
@@ -79,9 +81,39 @@ class Lowerer
                 CsLocal temp = new CsLocal("lowerer_temp");
                 CsInstructions.Add(new CsDeclare(temp, false, lowered.Value));
             }
-            LowerExpr(expr);
         }
         return new CsNil();
+    }
+
+    public CsValue LowerFile(string path, Position? position)
+    {
+        path = Path.GetFullPath(path);
+
+        if (!File.Exists(path))
+            throw new Error($"File '{path}' does not exist", position);
+
+        if (_compiledFiles.TryGetValue(path, out bool finished))
+        {
+            if (!finished)
+                throw new Error($"Circular import detected: '{path}'", position);
+            return new CsNil();
+        }
+
+        _compiledFiles[path] = false;
+
+        List<Token> tokens = new Lexer(File.ReadAllText(path), path).Lex();
+        Parser parser = new Parser(tokens);
+        List<Expr> exprs = parser.Parse();
+
+        UseStmts.AddRange(parser.UseStmts);
+
+        Sematics.Check(exprs);
+
+        CsValue last = LowerExprs(exprs);
+
+        _compiledFiles[path] = true;
+
+        return last;
     }
 
     public void MangleNames()
@@ -369,6 +401,40 @@ class Lowerer
 
                     return (new CsCall(target, args, callExpr.Position), false);
                 }
+
+            case ImportExpr importExpr:
+                return (LowerFile(importExpr.Path, importExpr.Position), true);
+
+            case IndexExpr indexExpr:
+                {
+                    CsValue target = LowerExpr(indexExpr.Target).Value;
+                    CsValue index = LowerExpr(indexExpr.Index).Value;
+                    return (new CsIndexGet(target, index, indexExpr.Position), false);
+                }
+
+            case IndexSetExpr indexSetExpr:
+                {
+                    IndexExpr indexExpr = indexSetExpr.IndexExpr;
+                    CsValue target = LowerExpr(indexExpr.Target).Value;
+                    CsValue index = LowerExpr(indexExpr.Index).Value;
+                    CsValue value = LowerExpr(indexSetExpr.Value).Value;
+                    return (new CsIndexSet(target, index, value, indexExpr.Position), false);
+                }
+
+            case MemberExpr memberExpr:
+                {
+                    CsValue target = LowerExpr(memberExpr.Target).Value;
+                    return (new CsMemberGet(target, memberExpr.Member, memberExpr.Position), false);
+                }
+
+            case MemberSetExpr memberSetExpr:
+                {
+                    MemberExpr memberExpr = memberSetExpr.MemberExpr;
+                    CsValue target = LowerExpr(memberExpr.Target).Value;
+                    CsValue value = LowerExpr(memberSetExpr.Value).Value;
+                    return (new CsMemberSet(target, memberExpr.Member, value, memberExpr.Position), false);
+                }
+
         }
 
         throw new Error($"'{expr.GetType().Name}' is an invalid expression", expr.Position);

@@ -5,10 +5,12 @@ class SourceGenerator
 {
     readonly string _exePath = AppContext.BaseDirectory;
     string _user;
+    List<UseStmt> _useStmts;
 
-    public SourceGenerator(StringBuilder user)
+    public SourceGenerator(StringBuilder user, List<UseStmt> useStmts)
     {
         _user = user.ToString();
+        _useStmts = useStmts;
     }
 
     public string Generate()
@@ -16,8 +18,9 @@ class SourceGenerator
         StringBuilder result = new StringBuilder();
 
         string runtime = GetRuntime();
+        string natives = GetNatives();
 
-        var stripped = StripUsingsAndPackages(runtime);
+        var stripped = StripUsingsAndPackages(runtime + natives);
 
         foreach (string package in stripped.Packages)
             result.AppendLine(package);
@@ -116,6 +119,54 @@ class SourceGenerator
             string contents = CheckFile(file);
             builder.Append(contents);
             builder.AppendLine();
+        }
+
+        return builder.ToString();
+    }
+
+    string GetNatives()
+    {
+        if (_useStmts.Count == 0)
+            return "";
+
+        string nativesPath = Path.Join(_exePath, "Templates/Natives");
+        if (!Directory.Exists(nativesPath))
+            throw new InvalidOperationException($"Failed to locate natives folder: '{nativesPath}'");
+
+        StringBuilder builder = new StringBuilder();
+
+        var newUses = _useStmts
+            .Select(x => new UseStmt(Path.Join(nativesPath, x.Path), x.Position));
+
+        HashSet<string> paths = [];
+
+        foreach (UseStmt useStmt in newUses)
+        {
+            if (File.Exists(useStmt.Path))
+            {
+                if (!paths.Add(useStmt.Path))
+                    continue;
+
+                string contents = CheckFile(useStmt.Path);
+                builder.Append(contents);
+                builder.AppendLine();
+            }
+            else if (Directory.Exists(useStmt.Path))
+            {
+                foreach (var file in Directory.EnumerateFiles(useStmt.Path, "*.cs", SearchOption.AllDirectories))
+                {
+                    if (!paths.Add(file))
+                        continue;
+
+                    string contents = CheckFile(file);
+                    builder.Append(contents);
+                    builder.AppendLine();
+                }
+            }
+            else
+            {
+                throw new Error($"File '{useStmt.Path}' does not exist", useStmt.Position);
+            }
         }
 
         return builder.ToString();

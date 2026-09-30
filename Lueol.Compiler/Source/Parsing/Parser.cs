@@ -4,6 +4,7 @@ using System.Reflection.Metadata.Ecma335;
 
 class Parser
 {
+    public List<UseStmt> UseStmts { get; } = [];
     List<Token> _tokens;
     int _i = 0;
 
@@ -16,8 +17,44 @@ class Parser
     {
         List<Expr> exprs = new List<Expr>();
 
+        while (Check(TokenType.Use))
+        {
+            Position position = Current().Position;
+
+            Next();
+
+            string path = Current().Lexeme;
+
+            Eat("Expected a string path", TokenType.String);
+
+            Expect(TokenType.Semicolon);
+
+            UseStmts.Add(new UseStmt(path, position));
+        }
+
+        while (Check(TokenType.Import))
+        {
+            Position position = Current().Position;
+
+            Next();
+
+            string path = Current().Lexeme;
+
+            Eat("Expected a string path", TokenType.String);
+
+            Expect(TokenType.Semicolon);
+
+            exprs.Add(new ImportExpr(path, position));
+        }
+
         while (NotAtEnd())
         {
+            if (Check(TokenType.Use))
+                throw new Error("use must appear before everying", Current().Position);
+
+            if (Check(TokenType.Import))
+                throw new Error("import must appear before everying besides use", Current().Position);
+
             exprs.Add(ParseExpr());
             Expect(TokenType.Semicolon);
         }
@@ -196,14 +233,7 @@ class Parser
         else if (Match(TokenType.False))
             return new BoolExpr(false, token.Position);
         else if (Match(TokenType.Identifier))
-        {
-            if (Match(TokenType.Equal))
-            {
-                Expr expr = ParseExpr();
-                return new AssignExpr(token.Lexeme, expr, token.Position);
-            }
             return new NameExpr(token.Lexeme, token.Position);
-        }
         else if (Match(TokenType.Nil))
             return new NilExpr(token.Position);
         else if (Match(TokenType.LeftParen))
@@ -354,33 +384,33 @@ class Parser
                 continue;
             }
 
-            //     if (Check(TokenType.LeftBracket))
-            //     {
-            //         Position position = Current().Position;
+            if (Check(TokenType.LeftBracket))
+            {
+                Position position = Current().Position;
 
-            //         Expect(TokenType.LeftBracket);
+                Expect(TokenType.LeftBracket);
 
-            //         Expr index = ParseExpr();
+                Expr index = ParseExpr();
 
-            //         Expect(TokenType.RightBracket);
+                Expect(TokenType.RightBracket);
 
-            //         left = new IndexExpr(left, index, position);
+                left = new IndexExpr(left, index, position);
 
-            //         continue;
-            //     }
+                continue;
+            }
 
-            //     if (Check(TokenType.Period))
-            //     {
-            //         Position position = Current().Position;
+            if (Check(TokenType.Period))
+            {
+                Position position = Current().Position;
 
-            //         Next();
+                Next();
 
-            //         string name = ParseName();
+                string name = ParseName();
 
-            //         left = new MemberExpr(left, name, position);
+                left = new MemberExpr(left, name, position);
 
-            //         continue;
-            //     }
+                continue;
+            }
 
             break;
         }
@@ -577,6 +607,29 @@ class Parser
             Expr right = ParseAnd();
 
             left = new BinaryExpr(left, right, op.TokenType, op.Position);
+        }
+
+        return left;
+    }
+
+    Expr ParseAssign()
+    {
+        Expr left = ParseOr();
+
+        if (Match(TokenType.Equal))
+        {
+            Expr expr = ParseAssign();
+
+            if (left is NameExpr nameExpr)
+                return new AssignExpr(nameExpr.Name, expr, left.Position);
+
+            else if (left is IndexExpr indexExpr)
+                return new IndexSetExpr(indexExpr, expr);
+
+            else if (left is MemberExpr memberExpr)
+                return new MemberSetExpr(memberExpr, expr);
+
+            throw new Error("Invalid assignment target", left.Position);
         }
 
         return left;

@@ -24,7 +24,9 @@ class Lexer
             { "default", TokenType.Default },
             { "def", TokenType.Def },
             { "return", TokenType.Return },
-            { "overload", TokenType.Overload }
+            { "overload", TokenType.Overload },
+            { "use", TokenType.Use },
+            { "import", TokenType.Import }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

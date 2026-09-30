@@ -130,6 +130,25 @@ static class Sematics
                         CheckExpr(arg);
                     break;
                 }
+
+            case IndexExpr indexExpr:
+                CheckExpr(indexExpr.Target);
+                CheckExpr(indexExpr.Index);
+                break;
+
+            case IndexSetExpr indexSetExpr:
+                CheckExpr(indexSetExpr.IndexExpr);
+                CheckExpr(indexSetExpr.Value);
+                break;
+
+            case MemberExpr memberExpr:
+                CheckExpr(memberExpr.Target);
+                break;
+
+            case MemberSetExpr memberSetExpr:
+                CheckExpr(memberSetExpr.MemberExpr);
+                CheckExpr(memberSetExpr.Value);
+                break;
         }
     }
 }
