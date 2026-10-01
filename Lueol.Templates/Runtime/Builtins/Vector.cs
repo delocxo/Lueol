@@ -218,6 +218,16 @@ namespace Builtins
                     return target.Value;
                 })
             },
+            {
+                "slice",
+                Function.Normal("slice", ["start", "end"], (args, target) =>
+                {
+                    var vector = target!.Value.As<VectorObject>();
+                    int start = args[0].ExpectKind(ValueKind.Int).AsInt32();
+                    int end = args[1].ExpectKind(ValueKind.Int).AsInt32();
+                    return new Value(new VectorObject(vector.Values.Slice(start, end - start)));
+                })
+            },
         };
     };
 }

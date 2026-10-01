@@ -453,6 +453,15 @@ readonly struct Value
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Value GetMember(string name)
     {
+        switch (Kind)
+        {
+            case ValueKind.String:
+                {
+                    if (Builtins.String.GetStringMember(this, name, out Value value))
+                        return value;
+                    break;
+                }
+        }
         if (Object is ILueolGetMember lueolGetMember)
             if (lueolGetMember.GetMember(name, out Value value))
                 return value;
