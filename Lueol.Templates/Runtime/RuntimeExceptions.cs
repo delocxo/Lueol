@@ -81,3 +81,32 @@ class UnknownMemberException : Exception
     {
     }
 }
+
+class UserException : Exception
+{
+    public Value Value { get; } = Value.Nil();
+
+    public UserException()
+    {
+    }
+
+    public UserException(string? message) : base(message)
+    {
+    }
+
+    public UserException(string? message, Value value) : base(message)
+    {
+        Value = value;
+    }
+}
+
+class AssertException : Exception
+{
+    public AssertException()
+    {
+    }
+
+    public AssertException(string? message) : base(message)
+    {
+    }
+}

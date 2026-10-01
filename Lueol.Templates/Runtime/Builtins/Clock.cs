@@ -33,8 +33,10 @@ namespace Builtins
         }
     }
 
-    record ClockObject(Stopwatch Stopwatch) : ILueolDefaultEquality, ILueolDefaultToString, ILueolGetMember
+    record ClockObject(Stopwatch Stopwatch) : ILueolDefaultEquality, ILueolDefaultToString, ILueolGetMember, ILueolName
     {
+        public string Name => "Clock";
+
         public bool GetMember(string name, out Value value)
         {
             switch (name)
@@ -53,7 +55,10 @@ namespace Builtins
             }
 
             if (!_memberFunctions.TryGetValue(name, out var function))
-                throw new UnknownMemberException($"'{name}' is not a valid member of clock");
+            {
+                value = Value.Nil();
+                return false;
+            }
 
             value = new Value(function.Bind(new Value(this)));
             return true;

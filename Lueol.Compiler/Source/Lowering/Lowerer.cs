@@ -454,6 +454,14 @@ class Lowerer
                     return (target, false);
                 }
 
+            case VectorExpr vectorExpr:
+                {
+                    List<CsValue> csValues = [];
+                    foreach (Expr vExpr in vectorExpr.Exprs)
+                        csValues.Add(LowerExpr(vExpr).Value);
+                    return (new CsVector(csValues), false);
+                }
+
         }
 
         throw new Error($"'{expr.GetType().Name}' is an invalid expression", expr.Position);

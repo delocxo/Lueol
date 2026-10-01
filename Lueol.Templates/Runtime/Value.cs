@@ -168,10 +168,19 @@ readonly struct Value
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string GetName() => ValueKindNames.GetName(Kind);
+    public string GetName()
+    {
+        if (Kind != ValueKind.Object)
+            return ValueKindNames.GetName(Kind);
+
+        else if (Object is ILueolName lueolName)
+            return lueolName.Name;
+
+        return Object!.GetType().Name;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string GetNameInQuotes() => $"'{ValueKindNames.GetName(Kind)}'";
+    public string GetNameInQuotes() => $"'{GetName()}'";
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsTruthy()
@@ -426,7 +435,7 @@ readonly struct Value
             if (lueolGetIndex.GetIndex(index, out Value value))
                 return value;
 
-        throw new InvalidKindException($"{GetNameInQuotes()} cannot be indexed accessed");
+        throw new InvalidKindException($"{GetNameInQuotes()} failed to be index accessed");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -438,7 +447,7 @@ readonly struct Value
             return;
         }
 
-        throw new InvalidKindException($"{GetNameInQuotes()} cannot be indexed accessed");
+        throw new InvalidKindException($"{GetNameInQuotes()} failed to be index accessed");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -448,7 +457,7 @@ readonly struct Value
             if (lueolGetMember.GetMember(name, out Value value))
                 return value;
 
-        throw new InvalidKindException($"{GetNameInQuotes()} cannot be member accessed");
+        throw new InvalidKindException($"{GetNameInQuotes()} cannot be member '{name}'");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -460,6 +469,6 @@ readonly struct Value
             return;
         }
 
-        throw new InvalidKindException($"{GetNameInQuotes()} cannot be member accessed");
+        throw new InvalidKindException($"{GetNameInQuotes()} does not contain member '{name}'");
     }
 }

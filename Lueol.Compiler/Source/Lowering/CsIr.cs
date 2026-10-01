@@ -26,6 +26,7 @@ record CsIndexGet(CsValue Target, CsValue Index, Position Position) : CsValue;
 record CsIndexSet(CsValue Target, CsValue Index, CsValue Value, Position Position) : CsValue;
 record CsMemberGet(CsValue Target, string Name, Position Position) : CsValue;
 record CsMemberSet(CsValue Target, string Name, CsValue Value, Position Position) : CsValue;
+record CsVector(List<CsValue> Values) : CsValue;
 
 abstract record CsInstruction
 {

@@ -154,6 +154,10 @@ static class Sematics
                 CheckExpr(flowExpr.Input);
                 CheckExpr(flowExpr.Target);
                 break;
+
+            case VectorExpr vectorExpr:
+                Check(vectorExpr.Exprs);
+                break;
         }
     }
 }

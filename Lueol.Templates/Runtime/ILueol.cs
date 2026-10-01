@@ -50,3 +50,8 @@ interface ILueolIsTruthy
 {
     public bool IsTruthy();
 }
+
+interface ILueolName
+{
+    public string Name { get; }
+}

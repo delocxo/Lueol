@@ -4,28 +4,12 @@ using System.Runtime.CompilerServices;
 
 namespace Builtins
 {
-    static class Vector
+    record VectorObject(List<Value> Values) :
+        ILueolDefaultEquality, ILueolDefaultToString, ILueolGetMember,
+        ILueolGetIndex, ILueolSetIndex, ILueolName
     {
-        [ModuleInitializer]
-        public static void Initialize()
-        {
-            Globals.AddFunction(Function.Normal("vector_new", [], (args, pos) =>
-            {
-                return new Value(new VectorObject([]));
-            }));
+        public string Name => "vector";
 
-            Globals.AddFunction(Function.Normal("vector_new_capacity", ["capacity"], (args, pos) =>
-            {
-                int capacity = (int)args[0]
-                    .ExpectKind(ValueKind.Int)
-                    .AsInt();
-                return new Value(new VectorObject(new List<Value>(capacity)));
-            }));
-        }
-    }
-
-    record VectorObject(List<Value> Values) : ILueolDefaultEquality, ILueolDefaultToString, ILueolGetMember, ILueolGetIndex, ILueolSetIndex
-    {
         public bool GetMember(string name, out Value value)
         {
             switch (name)
@@ -52,7 +36,10 @@ namespace Builtins
             }
 
             if (!_memberFunctions.TryGetValue(name, out var function))
-                throw new UnknownMemberException($"'{name}' is not a valid member of vector");
+            {
+                value = Value.Nil();
+                return false;
+            }
 
             value = new Value(function.Bind(new Value(this)));
             return true;

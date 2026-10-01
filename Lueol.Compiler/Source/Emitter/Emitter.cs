@@ -329,6 +329,18 @@ class Emitter
                     EmitLine($"Value {tempName} = {target}.SetMember(\"{csMemberSet.Name}\", {value});");
                     return tempName;
                 }
+
+            case CsVector csVector:
+                {
+                    string[] elements = csVector.Values
+                        .Select(EmitValue)
+                        .ToArray();
+
+                    string tempName = GetTemp();
+                    EmitLine($"Value {tempName} = new Value(new Builtins.VectorObject([{string.Join(", ", elements)}]));");
+
+                    return tempName;
+                }
         }
 
         throw new UnreachableException($"");

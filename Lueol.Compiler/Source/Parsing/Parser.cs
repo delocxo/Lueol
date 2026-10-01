@@ -368,6 +368,12 @@ class Parser
             return new ReturnExpr(expr, token.Position);
         }
 
+        else if (Check(TokenType.LeftBracket))
+        {
+            List<Expr> exprs = ParseArgs(TokenType.LeftBracket, TokenType.RightBracket);
+            return new VectorExpr(exprs, token.Position);
+        }
+
         throw ThrowUnexpected();
     }
 

@@ -36,3 +36,4 @@ record MemberExpr(Expr Target, string Member, Position Position) : Expr(Position
 record MemberSetExpr(MemberExpr MemberExpr, Expr Value) : Expr(MemberExpr.Position);
 record ImportExpr(string Path, Position Position) : Expr(Position);
 record FlowExpr(Expr Input, Expr Target, Position Position) : Expr(Position);
+record VectorExpr(List<Expr> Exprs, Position Position) : Expr(Position);
