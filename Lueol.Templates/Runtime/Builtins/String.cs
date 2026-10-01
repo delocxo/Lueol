@@ -10,7 +10,7 @@ namespace Builtins
                 "trim",
                 Function.Normal("trim", [], (args, target) =>
                 {
-                    return new Value( target!.Value.AsString().Trim());
+                    return new Value(target!.Value.AsString().Trim());
                 })
             },
             {
@@ -38,14 +38,7 @@ namespace Builtins
                 "ends_with",
                 Function.Normal("ends_with", ["needle"], (args, target) =>
                 {
-                    return new Value( target!.Value.AsString().StartsWith(args[0].ToString()));
-                })
-            },
-            {
-                "ends_with",
-                Function.Normal("ends_with", ["needle"], (args, target) =>
-                {
-                    return new Value( target!.Value.AsString().StartsWith(args[0].ToString()));
+                    return new Value( target!.Value.AsString().EndsWith(args[0].ToString()));
                 })
             },
             {
