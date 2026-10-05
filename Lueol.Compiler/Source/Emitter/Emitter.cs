@@ -337,7 +337,7 @@ class Emitter
                         .ToArray();
 
                     string tempName = GetTemp();
-                    EmitLine($"Value {tempName} = new Value(new Builtins.VectorObject([{string.Join(", ", elements)}]));");
+                    EmitLine($"Value {tempName} = new Value(new Builtins.VectorObject(){{ {string.Join(", ", elements)} }});");
 
                     return tempName;
                 }

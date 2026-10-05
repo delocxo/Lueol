@@ -65,15 +65,37 @@ namespace Builtins
                 })
             },
             {
-                "to_vector",
-                Function.Normal("to_vector", [], (args, target) =>
+                "try_parse_int",
+                Function.Normal("try_parse_int", [], (args, target) =>
                 {
-                    VectorObject vectorObject = new VectorObject([]);
-                    foreach (char c in target!.Value.AsString())
-                        vectorObject.Values.Add(new Value(c.ToString()));
-                    return new Value(vectorObject);
+                    string str = target!.Value.AsString();
+                    if (long.TryParse(str, NumberStyles.Integer, CultureInfo.InvariantCulture, out long result))
+                        return new Value(result);
+                    return Value.Nil();
                 })
             },
+            {
+                "try_parse_float",
+                Function.Normal("try_parse_float", [], (args, target) =>
+                {
+                    string str = target!.Value.AsString();
+                    if (double.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
+                        return new Value(result);
+                    return Value.Nil();
+                })
+            },
+            {
+                "try_parse_number",
+                Function.Normal("try_parse_number", [], (args, target) =>
+                {
+                    string str = target!.Value.AsString();
+                    if (long.TryParse(str, NumberStyles.Integer, CultureInfo.InvariantCulture, out long intResult))
+                        return new Value(intResult);
+                    else if (double.TryParse(str, NumberStyles.Float, CultureInfo.InvariantCulture, out double floatResult))
+                        return new Value(floatResult);
+                    return Value.Nil();
+                })
+            }
         };
 
         public static bool GetStringMember(Value target, string name, out Value value)

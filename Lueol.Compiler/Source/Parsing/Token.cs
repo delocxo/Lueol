@@ -15,7 +15,7 @@ internal enum TokenType
     Equal, Semicolon, LeftBracket, RightBracket,
     LeftBrace, RightBrace, LeftParen, RightParen,
     Comma, Period, Hash, Arrow, At, UnderScore,
-    Flow,
+    Flow, SingleQuote,
 
     Eof,
 }

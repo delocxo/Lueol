@@ -1,82 +1,101 @@
 using System.Collections.Frozen;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 
 namespace Builtins
 {
-    record VectorObject(List<Value> Values) :
-        ILueolDefaultEquality, ILueolDefaultToString, ILueolGetMember,
-        ILueolGetIndex, ILueolSetIndex, ILueolName
+    static class VectorGlobals
     {
-        public string Name => "vector";
+        static void X()
+        {
+        }
+    }
 
-        public bool GetMember(string name, out Value value)
+    class VectorObject : List<Value>, ILueolName, ILueolToString, ILueolDefaultEquality,
+        ILueolDefaultHash, ILueolGetMember, ILueolGetIndex, ILueolSetIndex
+    {
+        public VectorObject()
+        {
+        }
+
+        public VectorObject(IEnumerable<Value> collection) : base(collection)
+        {
+        }
+
+        public VectorObject(int capacity) : base(capacity)
+        {
+        }
+
+        public string LueolName => "vector";
+
+        public bool LueolGetIndex(Value index, out Value value)
+        {
+            int raw = index.ExpectInt32();
+            value = this[raw];
+            return true;
+        }
+
+        public bool LueolGetMember(string name, out Value value)
         {
             switch (name)
             {
                 case "length":
-                    value = new Value(Values.Count);
+                    value = new Value(Count);
+                    return true;
+
+                case "capacity":
+                    value = new Value(Capacity);
                     return true;
 
                 case "is_empty":
-                    value = new Value(Values.Count == 0);
+                    value = new Value(Count == 0);
                     return true;
 
                 case "first":
-                    if (Values.Count == 0)
-                        throw new InvalidOperationException("Cannot get the first item from an empty vector is empty");
-                    value = Values[0];
+                    if (Count == 0)
+                        throw new InvalidOperationException("Cannot get the first item out of an empty vector");
+
+                    value = new Value(this[0]);
                     return true;
 
                 case "last":
-                    if (Values.Count == 0)
-                        throw new InvalidOperationException("Cannot get the last item from an empty vector is empty");
-                    value = Values[^1];
+                    if (Count == 0)
+                        throw new InvalidOperationException("Cannot get the last item out of an empty vector");
+
+                    value = new Value(this[^1]);
                     return true;
             }
 
-            if (!_memberFunctions.TryGetValue(name, out var function))
+            if (FunctionMembers.TryGetValue(name, out Function? function))
             {
-                value = Value.Nil();
-                return false;
+                value = new Value(function.Bind(new Value(this)));
+                return true;
             }
 
-            value = new Value(function.Bind(new Value(this)));
-            return true;
+            value = Value.Nil();
+            return false;
         }
 
-        public void SetIndex(Value index, Value value)
+        public void LueolSetIndex(Value index, Value value)
         {
-            int raw = index.ExpectKind(ValueKind.Int).AsInt32();
-            Values[raw] = value;
+            int raw = index.ExpectInt32();
+            this[raw] = value;
         }
 
-        public bool GetIndex(Value index, out Value value)
-        {
-            int raw = index.ExpectKind(ValueKind.Int).AsInt32();
-            value = Values[raw];
-            return true;
-        }
+        public string LueolToString()
+            => $"Vector({string.Join(
+                    ", ",
+                    this.Select(x => x.ToStringWithQuotes())
+                )})";
 
-        static Dictionary<string, Function> _memberFunctions = new Dictionary<string, Function>
+        static FrozenDictionary<string, Function> FunctionMembers = new Dictionary<string, Function>
         {
             {
                 "push",
                 Function.Normal("push", ["item"], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    vector.Values.Add(args[0]);
-                    return target!.Value;
-                })
-            },
-            {
-                "push_vector",
-                Function.Normal("push_vector", ["other"], (args, target) =>
-                {
-                    var vector = target!.Value.As<VectorObject>();
-                    var other = args[0].As<VectorObject>();
-                    vector.Values.AddRange(other.Values);
-                    return target!.Value;
+                    Value item = args[0];
+                    vector.Add(item);
+                    return target.Value;
                 })
             },
             {
@@ -84,57 +103,30 @@ namespace Builtins
                 Function.Normal("pop", [], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    if (vector.Values.Count == 0)
-                        throw new InvalidOperationException("Cannot pop an item from an empty vector is empty");
-                    Value value = vector.Values[^1];
-                    vector.Values.RemoveAt(vector.Values.Count - 1);
-                    return value;
+                    if (vector.Count == 0)
+                        throw new InvalidOperationException("Cannot pop an empty vector");
+                    Value last = vector[^1];
+                    vector.RemoveAt(vector.Count - 1);
+                    return last;
                 })
             },
             {
-                "remove",
-                Function.Normal("remove", ["item"], (args, target) =>
+                "push_vector",
+                Function.Normal("push_vector", ["other_vector"], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    Value needle = args[0];
-                    for (int i = 0; i < vector.Values.Count; i++)
-                    {
-                        if (needle.Compare(vector.Values[i]))
-                        {
-                            vector.Values.RemoveAt(i);
-                            break;
-                        }
-                    }
-                    return target!.Value;
+                    var otherVector = args[0].As<VectorObject>();
+                    vector.AddRange(otherVector);
+                    return target.Value;
                 })
             },
             {
-                "remove_at",
-                Function.Normal("remove_at", ["index"], (args, target) =>
+                "clear",
+                Function.Normal("clear", [], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    int index = (int)args[0]
-                        .ExpectKind(ValueKind.Int)
-                        .AsInt();
-                    vector.Values.RemoveAt(index);
-                    return target!.Value;
-                })
-            },
-            {
-                "try_remove",
-                Function.Normal("try_remove", ["item"], (args, target) =>
-                {
-                    var vector = target!.Value.As<VectorObject>();
-                    Value needle = args[0];
-                    for (int i = 0; i < vector.Values.Count; i++)
-                    {
-                        if (needle.Compare(vector.Values[i]))
-                        {
-                            vector.Values.RemoveAt(i);
-                            return new Value(true);
-                        }
-                    }
-                    return new Value(false);
+                    vector.Clear();
+                    return target.Value;
                 })
             },
             {
@@ -142,12 +134,12 @@ namespace Builtins
                 Function.Normal("contains", ["item"], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    Value needle = args[0];
-                    for (int i = 0; i < vector.Values.Count; i++)
-                    {
-                        if (needle.Compare(vector.Values[i]))
+                    Value item = args[0];
+
+                    foreach (Value other in vector)
+                        if (item.Compare(other))
                             return new Value(true);
-                    }
+
                     return new Value(false);
                 })
             },
@@ -156,13 +148,22 @@ namespace Builtins
                 Function.Normal("index_of", ["item"], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    Value needle = args[0];
-                    for (int i = 0; i < vector.Values.Count; i++)
-                    {
-                        if (needle.Compare(vector.Values[i]))
+                    Value item = args[0];
+
+                    for (int i = 0; i < vector.Count; i++)
+                        if (item.Compare(vector[i]))
                             return new Value(i);
-                    }
+
                     return new Value(-1);
+                })
+            },
+            {
+                "ensure_capacity",
+                Function.Normal("ensure_capacity", ["capacity"], (args, target) =>
+                {
+                    var vector = target!.Value.As<VectorObject>();
+                    int capacity = args[0].ExpectInt32();
+                    return new Value(vector.EnsureCapacity(capacity));
                 })
             },
             {
@@ -170,24 +171,76 @@ namespace Builtins
                 Function.Normal("insert", ["index", "item"], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    int index = (int)args[0]
-                        .ExpectKind(ValueKind.Int)
-                        .AsInt();
-                    Value value = args[1];
-                    vector.Values.Insert(index, value);
+                    int index = args[0].ExpectInt32();
+                    Value item = args[1];
+                    vector.Insert(index, item);
                     return target.Value;
                 })
             },
             {
                 "insert_vector",
-                Function.Normal("insert_vector", ["index", "other"], (args, target) =>
+                Function.Normal("insert_vector", ["index", "other_vector"], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    int index = (int)args[0]
-                        .ExpectKind(ValueKind.Int)
-                        .AsInt();
-                    var value = args[1].As<VectorObject>();;
-                    vector.Values.InsertRange(index, value.Values);
+                    int index = args[0].ExpectInt32();
+                    var otherVector = args[1].As<VectorObject>();
+                    vector.InsertRange(index, otherVector);
+                    return target.Value;
+                })
+            },
+            {
+                "remove",
+                Function.Normal("remove", ["item"], (args, target) =>
+                {
+                    var vector = target!.Value.As<VectorObject>();
+                    Value item = args[0];
+                    for (int i = 0; i < vector.Count; i++)
+                        if (item.Compare(vector[i]))
+                        {
+                            vector.RemoveAt(i);
+                            return new Value(true);
+                        }
+
+                    return new Value(false);
+                })
+            },
+            {
+                "remove_at",
+                Function.Normal("remove_at", ["index"], (args, target) =>
+                {
+                    var vector = target!.Value.As<VectorObject>();
+                    int index = args[0].ExpectInt32();
+                    vector.RemoveAt(index);
+                    return target.Value;
+                })
+            },
+            {
+                "get_range",
+                Function.Normal("get_range", ["index", "length"], (args, target) =>
+                {
+                    var vector = target!.Value.As<VectorObject>();
+                    int index = args[0].ExpectInt32();
+                    int length = args[1].ExpectInt32();
+                    return new Value(vector.GetRange(index, length));
+                })
+            },
+            {
+                "remove_range",
+                Function.Normal("remove_range", ["index", "length"], (args, target) =>
+                {
+                    var vector = target!.Value.As<VectorObject>();
+                    int index = args[0].ExpectInt32();
+                    int length = args[1].ExpectInt32();
+                    vector.RemoveRange(index, length);
+                    return target.Value;
+                })
+            },
+            {
+                "reverse",
+                Function.Normal("reverse", [], (args, target) =>
+                {
+                    var vector = target!.Value.As<VectorObject>();
+                    vector.Reverse();
                     return target.Value;
                 })
             },
@@ -196,38 +249,19 @@ namespace Builtins
                 Function.Normal("copy", [], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    return new Value(new VectorObject([..vector.Values]));
+                    List<Value> copied = [.. vector];
+                    return new Value(copied);
                 })
             },
             {
-                "reversed",
-                Function.Normal("copy", [], (args, target) =>
+                "trim_excess",
+                Function.Normal("trim_excess", [], (args, target) =>
                 {
                     var vector = target!.Value.As<VectorObject>();
-                    var copy = new VectorObject([..vector.Values]);
-                    copy.Values.Reverse();
-                    return new Value(copy);
-                })
-            },
-            {
-                "reverse",
-                Function.Normal("copy", [], (args, target) =>
-                {
-                    var vector = target!.Value.As<VectorObject>();
-                    vector.Values.Reverse();
+                    vector.TrimExcess();
                     return target.Value;
                 })
             },
-            {
-                "slice",
-                Function.Normal("slice", ["start", "end"], (args, target) =>
-                {
-                    var vector = target!.Value.As<VectorObject>();
-                    int start = args[0].ExpectKind(ValueKind.Int).AsInt32();
-                    int end = args[1].ExpectKind(ValueKind.Int).AsInt32();
-                    return new Value(new VectorObject(vector.Values.Slice(start, end - start)));
-                })
-            },
-        };
-    };
+        }.ToFrozenDictionary();
+    }
 }

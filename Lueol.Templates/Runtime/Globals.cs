@@ -1,3 +1,5 @@
+using Builtins;
+
 static class Globals
 {
     static Dictionary<string, Value> s_globals { get; } = [];
@@ -17,5 +19,13 @@ static class Globals
         if (string.IsNullOrWhiteSpace(function.Name) || function.IsAnonymous)
             throw new InvalidOperationException("Function cannot be anonymous or have an empty name");
         s_globals[function.Name] = new Value(function);
+    }
+
+    public static NamespaceObject AddNamespace(string name, NamespaceObject namespaceObject)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException("Namespace cannot have an empty name");
+        s_globals[name] = new Value(namespaceObject);
+        return namespaceObject;
     }
 }

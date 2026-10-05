@@ -3,6 +3,9 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+generated.cs
+run.ps1
+
 # dotenv files
 .env
 

@@ -151,9 +151,58 @@ readonly struct Value
     public Value ExpectKind(ValueKind kind)
     {
         if (Kind != kind)
-            throw new InvalidKindException($"Expected {GetNameInQuotes()}, got '{GetName()}'");
+            throw new InvalidKindException($"Expected {ValueKindNames.GetName(kind)}, got {GetNameInQuotes()}");
 
         return this;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public string ExpectString()
+    {
+        ExpectKind(ValueKind.String);
+        return AsString();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public long ExpectInt()
+    {
+        ExpectKind(ValueKind.Int);
+        return AsInt();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int ExpectInt32()
+    {
+        ExpectKind(ValueKind.Int);
+        return AsInt32();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double ExpectFloat()
+    {
+        ExpectKind(ValueKind.Float);
+        return AsFloat();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public float ExpectFloat32()
+    {
+        ExpectKind(ValueKind.Float);
+        return (float)AsFloat();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool ExpectBool()
+    {
+        ExpectKind(ValueKind.Bool);
+        return AsBool();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Function ExpectFunction()
+    {
+        ExpectKind(ValueKind.Function);
+        return AsFunction();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -174,7 +223,7 @@ readonly struct Value
             return ValueKindNames.GetName(Kind);
 
         else if (Object is ILueolName lueolName)
-            return lueolName.Name;
+            return lueolName.LueolName;
 
         return Object!.GetType().Name;
     }
@@ -196,7 +245,7 @@ readonly struct Value
     public bool ObjectIsTruthy()
     {
         if (Object is ILueolIsTruthy lueolIsTruthy)
-            return lueolIsTruthy.IsTruthy();
+            return lueolIsTruthy.LueolIsTruthy();
 
         return true;
     }
@@ -221,10 +270,10 @@ readonly struct Value
     public bool CompareObject(Value other)
     {
         if (Object is ILueolEquality lueolEquality)
-            return lueolEquality.Equality(other);
+            return lueolEquality.LueolEquality(other);
 
         else if (Object is ILueolDefaultEquality lueolDefaultEquality)
-            return lueolDefaultEquality.DefaultEquality(other);
+            return lueolDefaultEquality.LueolDefaultEquality(other);
 
         return false;
     }
@@ -254,12 +303,24 @@ readonly struct Value
     public string ObjectToString()
     {
         if (Object is ILueolToString lueolToString)
-            return lueolToString.ToLueolToString();
+            return lueolToString.LueolToString();
 
         else if (Object is ILueolDefaultToString lueolDefaultToString)
-            return lueolDefaultToString.ToLueolToString();
+            return lueolDefaultToString.LueolToString();
 
         throw new InvalidKindException($"{GetNameInQuotes()} cannot be converted into a string");
+    }
+
+    /// <summary>
+    /// Basically the normal ToString function but it wraps only the string in quotes
+    /// </summary>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public string ToStringWithQuotes()
+    {
+        if (IsKind(ValueKind.String))
+            return $"'{AsString()}'";
+        return ToString();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -409,17 +470,23 @@ readonly struct Value
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Value Call(ReadOnlySpan<Value> args)
     {
-        ExpectKind(ValueKind.Function);
+        if (IsKind(ValueKind.Function))
+        {
+            Function function = AsFunction();
 
-        Function function = AsFunction();
+            if (args.Length != function.Arity)
+                throw new ArgumentCountException($"{function} expects {function.Arity} argument(s), got {args.Length} argument(s)");
 
-        if (args.Length != function.Arity)
-            throw new ArgumentCountException($"{function} expects {function.Arity} argument(s), got {args.Length} argument(s)");
+            if (function.Target != null)
+                return function.Delegate(args, function.Target);
 
-        if (function.Target != null)
-            return function.Delegate(args, function.Target);
+            return function.Delegate(args, null);
+        }
 
-        return function.Delegate(args, null);
+        if (Object is ILueolCallable lueolCallable)
+            return lueolCallable.LueolCall(args);
+
+        throw new InvalidKindException($"{GetNameInQuotes} is not callable");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -432,22 +499,22 @@ readonly struct Value
         }
 
         if (Object is ILueolGetIndex lueolGetIndex)
-            if (lueolGetIndex.GetIndex(index, out Value value))
+            if (lueolGetIndex.LueolGetIndex(index, out Value value))
                 return value;
 
-        throw new InvalidKindException($"{GetNameInQuotes()} failed to be index accessed");
+        throw new InvalidKindException($"{GetNameInQuotes()} failed to be index accessed: {ToStringWithQuotes()}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetIndex(Value index, Value value)
+    public Value SetIndex(Value index, Value value)
     {
         if (Object is ILueolSetIndex lueolSetIndex)
         {
-            lueolSetIndex.SetIndex(index, value);
-            return;
+            lueolSetIndex.LueolSetIndex(index, value);
+            return this;
         }
 
-        throw new InvalidKindException($"{GetNameInQuotes()} failed to be index accessed");
+        throw new InvalidKindException($"{GetNameInQuotes()} failed to be index accessed: {ToStringWithQuotes()}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -463,21 +530,53 @@ readonly struct Value
                 }
         }
         if (Object is ILueolGetMember lueolGetMember)
-            if (lueolGetMember.GetMember(name, out Value value))
+            if (lueolGetMember.LueolGetMember(name, out Value value))
                 return value;
 
         throw new InvalidKindException($"{GetNameInQuotes()} cannot be member '{name}'");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void SetMember(string name, Value value)
+    public Value SetMember(string name, Value value)
     {
         if (Object is ILueolSetMember lueolSetMember)
         {
-            lueolSetMember.SetMember(name, value);
-            return;
+            lueolSetMember.LueolSetMember(name, value);
+            return this;
         }
 
         throw new InvalidKindException($"{GetNameInQuotes()} does not contain member '{name}'");
+    }
+
+    public override int GetHashCode()
+    {
+        switch (Kind)
+        {
+            case ValueKind.Int:
+                return AsInt().GetHashCode();
+
+            case ValueKind.Float:
+                return AsFloat().GetHashCode();
+
+            case ValueKind.String:
+                return AsString().GetHashCode();
+
+            case ValueKind.Bool:
+                return AsBool().GetHashCode();
+
+            case ValueKind.Nil:
+                return 0;
+
+            case ValueKind.Function:
+                return AsFunction().GetHashCode();
+        }
+
+        if (Object is ILueolHash lueolHash)
+            return lueolHash.LueolGetHash();
+
+        else if (Object is ILueolDefaultHash lueolDefaultHash)
+            return lueolDefaultHash.GetHashCode();
+
+        throw new InvalidKindException($"{GetNameInQuotes()} cannot be hashed");
     }
 }

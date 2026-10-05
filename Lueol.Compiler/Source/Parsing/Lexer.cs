@@ -64,7 +64,8 @@ class Lexer
             // { "|", TokenType.BitwiseOr },
             { "=>", TokenType.Arrow },
             { "@", TokenType.At },
-            { "~>", TokenType.Flow }
+            { "~>", TokenType.Flow },
+            { "'", TokenType.SingleQuote }
         };
 
     public static string? GetKeywordFromType(TokenType type)
@@ -150,6 +151,17 @@ class Lexer
         }
 
         tokens.Add(new Token(TokenType.Eof, "End of File", _currentPos));
+
+        for (int i = tokens.Count - 1; i > 0; i--)
+        {
+            if (tokens[i].TokenType == TokenType.Identifier &&
+                tokens[i - 1].TokenType == TokenType.SingleQuote)
+            {
+                Token token = tokens[i];
+                tokens[i] = new Token(TokenType.String, token.Lexeme, token.Position);
+                tokens.RemoveAt(i - 1);
+            }
+        }
 
         return tokens;
     }
