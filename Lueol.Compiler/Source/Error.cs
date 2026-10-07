@@ -28,7 +28,10 @@ class Error : Exception
     public void Exit()
     {
         if (_position != null)
+        {
             Console.Error.WriteLine($"Error: {_position.Value.Line}:{_position.Value.Column}:{_position.Value.Source}: {Message}");
+            return;
+        }
         Console.Error.WriteLine($"Error: {Message}");
         Environment.Exit(1);
     }

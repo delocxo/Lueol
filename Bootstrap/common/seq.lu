@@ -1,0 +1,29 @@
+import "Bootstrap/common/for.lu";
+
+const seq = namespace([
+    [
+        "select",
+        def(items, callback){
+            kind.expect(items, "vector");
+            kind.expect(callback, "function");
+            const new_items = [];
+            for(items, def(i, value){
+                new_items.push(callback(value));
+            });
+            new_items;
+        }
+    ],
+    [
+        "filter",
+        def(items, predicate){
+            kind.expect(items, "vector");
+            kind.expect(predicate, "function");
+            const new_items = [];
+            for(items, def(i, value){
+                if (predicate(value))
+                    new_items.push(value);
+            });
+            new_items;
+        }
+    ]
+]);

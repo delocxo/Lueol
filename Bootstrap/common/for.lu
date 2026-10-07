@@ -1,0 +1,9 @@
+const for = def(elements, callback) {
+    kind.expect(elements, "vector");
+    kind.expect(callback, "function");
+    let i = 0;
+    while i < elements.length {
+        callback(i, elements[i]);
+        i = i + 1;
+    };
+};

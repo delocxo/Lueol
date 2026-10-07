@@ -65,7 +65,8 @@ class Lexer
             { "=>", TokenType.Arrow },
             { "@", TokenType.At },
             { "~>", TokenType.Flow },
-            { "'", TokenType.SingleQuote }
+            { "'", TokenType.SingleQuote },
+            { "~>>", TokenType.CallFlow }
         };
 
     public static string? GetKeywordFromType(TokenType type)
@@ -100,6 +101,19 @@ class Lexer
             {
                 Next();
                 continue;
+            }
+
+            if (NotAtEnd(2))
+            {
+                string tripleChar = $"{Char(0)}{Char(1)}{Char(2)}";
+                if (s_symbols.TryGetValue(tripleChar, out TokenType value))
+                {
+                    tokens.Add(new Token(value, tripleChar, _currentPos));
+                    Next();
+                    Next();
+                    Next();
+                    continue;
+                }
             }
 
             if (NotAtEnd(1))

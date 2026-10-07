@@ -1,0 +1,6 @@
+const make_pos = def(source, line, offset)
+    map([
+        ["source", source],
+        ["line", line],
+        ["offset", offset]
+    ]);

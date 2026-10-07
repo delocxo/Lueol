@@ -10,9 +10,22 @@ namespace Builtins
         [ModuleInitializer]
         public static void Init()
         {
-            Globals.AddFunction(Function.Normal("map", [], (args, pos) =>
+            Globals.AddFunction(Function.Normal("namespace", ["members"], (args, pos) =>
             {
-                return new Value(new MapObject());
+                var vector = args[0].As<VectorObject>();
+                var ns = new NamespaceObject(vector.Count);
+
+                foreach (Value item in vector)
+                {
+                    var member = item.As<VectorObject>();
+                    if (member.Count != 2)
+                        throw new InvalidOperationException("Expected a name and value");
+                    string name = member[0].ToString();
+                    Value value = member[1];
+                    ns.Add(name, value);
+                }
+
+                return new Value(ns);
             }));
         }
     }

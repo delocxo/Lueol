@@ -9,9 +9,22 @@ namespace Builtins
         [ModuleInitializer]
         public static void Init()
         {
-            Globals.AddFunction(Function.Normal("map", [], (args, pos) =>
+            Globals.AddFunction(Function.Normal("map", ["entries"], (args, pos) =>
             {
-                return new Value(new MapObject());
+                var vector = args[0].As<VectorObject>();
+                var map = new MapObject(vector.Count);
+
+                foreach (Value item in vector)
+                {
+                    var member = item.As<VectorObject>();
+                    if (member.Count != 2)
+                        throw new InvalidOperationException("Expected a key and value");
+                    Value key = member[0];
+                    Value value = member[1];
+                    map.Add(key, value);
+                }
+
+                return new Value(map);
             }));
         }
     }
@@ -21,6 +34,7 @@ namespace Builtins
     {
         public MapObject() : base(new ValueComparer())
         {
+
         }
 
         public MapObject(IDictionary<Value, Value> dictionary)
@@ -38,7 +52,7 @@ namespace Builtins
         {
         }
 
-        public string LueolName => throw new NotImplementedException();
+        public string LueolName => "map";
 
         public bool LueolGetIndex(Value index, out Value value)
         {
@@ -100,6 +114,13 @@ namespace Builtins
             {
                 [new Value("success")] = new Value(success),
                 [new Value("result")] = result
+            };
+
+        public static MapObject CreateKVP(Value key, Value value)
+            => new MapObject()
+            {
+                [new Value("key")] = key,
+                [new Value("value")] = value
             };
 
         static FrozenDictionary<string, Function> FunctionMembers = new Dictionary<string, Function>

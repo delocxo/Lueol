@@ -636,6 +636,22 @@ class Parser
             left = new FlowExpr(left, target, position);
         }
 
+        while (Check(TokenType.CallFlow))
+        {
+            Position position = Current().Position;
+
+            Next();
+
+            Expr target = ParseOr();
+
+            if (target is not CallExpr callExpr)
+                throw new Error($"'~>>' can only be used on call", position);
+
+            callExpr.Exprs.Insert(0, left);
+
+            left = new FlowExpr(left, callExpr, position);
+        }
+
         return left;
     }
 

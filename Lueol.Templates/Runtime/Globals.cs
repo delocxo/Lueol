@@ -21,11 +21,12 @@ static class Globals
         s_globals[function.Name] = new Value(function);
     }
 
-    public static NamespaceObject AddNamespace(string name, NamespaceObject namespaceObject)
+    public static NamespaceObject AddNamespace(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new InvalidOperationException("Namespace cannot have an empty name");
-        s_globals[name] = new Value(namespaceObject);
-        return namespaceObject;
+        var ns = new NamespaceObject();
+        s_globals[name] = new Value(ns);
+        return ns;
     }
 }

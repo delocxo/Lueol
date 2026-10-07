@@ -262,6 +262,19 @@ namespace Builtins
                     return target.Value;
                 })
             },
+            {
+                "try_push",
+                Function.Normal("try_push", ["item"], (args, target) =>
+                {
+                    var vector = target!.Value.As<VectorObject>();
+                    Value item = args[0];
+                    for (int i = 0; i < vector.Count; i++)
+                        if (item.Compare(vector[i]))
+                            return new Value(false);
+                    vector.Add(item);
+                    return new Value(true);
+                })
+            },
         }.ToFrozenDictionary();
     }
 }

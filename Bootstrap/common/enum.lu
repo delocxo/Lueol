@@ -1,0 +1,11 @@
+import "Bootstrap/common/for.lu";
+
+const enum = def(enum_names) {
+    kind.expect(enum_names, "vector");
+    const enums = [];
+    for(enum_names, def(i, value){
+        kind.expect(value, "string");
+        enums.push([value, i]);
+    });
+    namespace(enums);
+};

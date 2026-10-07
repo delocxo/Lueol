@@ -1,0 +1,9 @@
+const lexer = namespace([
+    [
+        "new",
+        def(source, position)
+            map([
+                
+            ]);
+    ]
+]);

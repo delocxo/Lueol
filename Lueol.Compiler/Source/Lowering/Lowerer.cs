@@ -87,33 +87,41 @@ class Lowerer
 
     public CsValue LowerFile(string path, Position? position)
     {
-        path = Path.GetFullPath(path);
-
-        if (!File.Exists(path))
-            throw new Error($"File '{path}' does not exist", position);
-
-        if (_compiledFiles.TryGetValue(path, out bool finished))
+        try
         {
-            if (!finished)
-                throw new Error($"Circular import detected: '{path}'", position);
+            path = Path.GetFullPath(path);
+
+            if (!File.Exists(path))
+                throw new Error($"File '{path}' does not exist", position);
+
+            if (_compiledFiles.TryGetValue(path, out bool finished))
+            {
+                if (!finished)
+                    throw new Error($"Circular import detected: '{path}'", position);
+                return new CsNil();
+            }
+
+            _compiledFiles[path] = false;
+
+            List<Token> tokens = new Lexer(File.ReadAllText(path), path).Lex();
+            Parser parser = new Parser(tokens);
+            List<Expr> exprs = parser.Parse();
+
+            UseStmts.AddRange(parser.UseStmts);
+
+            Sematics.Check(exprs);
+
+            CsValue last = LowerExprs(exprs);
+
+            _compiledFiles[path] = true;
+
+            return last;
+        }
+        catch (Error e)
+        {
+            e.Exit();
             return new CsNil();
         }
-
-        _compiledFiles[path] = false;
-
-        List<Token> tokens = new Lexer(File.ReadAllText(path), path).Lex();
-        Parser parser = new Parser(tokens);
-        List<Expr> exprs = parser.Parse();
-
-        UseStmts.AddRange(parser.UseStmts);
-
-        Sematics.Check(exprs);
-
-        CsValue last = LowerExprs(exprs);
-
-        _compiledFiles[path] = true;
-
-        return last;
     }
 
     public void MangleNames()

@@ -533,7 +533,7 @@ readonly struct Value
             if (lueolGetMember.LueolGetMember(name, out Value value))
                 return value;
 
-        throw new InvalidKindException($"{GetNameInQuotes()} cannot be member '{name}'");
+        throw new InvalidKindException($"{GetNameInQuotes()} does not contain member '{name}'");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

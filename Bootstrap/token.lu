@@ -1,0 +1,20 @@
+import "Bootstrap/common/enum.lu";
+
+const TokenType = enum([
+    "Identifier", "String", "Number",
+
+    "True", "False", "Nil", "Let", "Const",
+
+    "Add", "Sub", "Mul", "Div", "Mod",
+    "Less", "Greater", "LessEq", "GreaterEq",
+    "Equals", "NotEqual",
+
+    "Semicolon", "Equal", "LeftParan", "RightParan"
+]);
+
+const make_token = def(type, lexeme, pos)
+    map([
+        ["type", type],
+        ["lexeme", lexeme],
+        ["pos", pos]
+    ]);
